@@ -2,11 +2,13 @@ from datetime import datetime
 from typing import Dict, Any
 from .llm_client import CreditAnalysisAgent
 from .pdf_processor import PDFProcessor
+from .tracing import trace
 
 class AgentExecutor:
     def __init__(self):
         self.agent = CreditAnalysisAgent()
 
+    @trace("agent_process")
     def process(self, pdf_path: str, user: Dict[str, str]) -> Dict[str, Any]:
         text = PDFProcessor.extract_text(pdf_path)
         analysis = self.agent.analyze_contract(text)

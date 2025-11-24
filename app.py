@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,7 +9,9 @@ import os
 from analyzers.gpr_calculator import GPRCalculator
 from analyzers.contract_analyzer import ContractAnalyzer
 from ai_agent.agent_executor import AgentExecutor
+from ai_agent.tracing import TRACES
 from database.models import Session, Creditor, Violation, CourtCase, UnfairClause
+from sqlalchemy import text
 from utils.s3_storage import init_s3, upload_contract_to_s3
 
 app = FastAPI(title="Credit Guardian API", version="0.1")
@@ -44,9 +47,11 @@ class GPRVerifyRequest(BaseModel):
     term_months: int
     fees: list = []
 
+ 
 gpr_calc = GPRCalculator()
 contract_analyzer = ContractAnalyzer()
 ai_executor = AgentExecutor()
+AI_COMPLAINTS = []  # simple in-memory store [{'id':int,'complaint':str,'analysis':dict}]
 
 
 @app.post("/gpr/calculate")
@@ -113,9 +118,43 @@ async def ai_analyze_contract(file: UploadFile = File(...), name: str = "Пот�
         tmp_path = tmp.name
     try:
         result = ai_executor.process(tmp_path, {"name": name, "address": address})
+        cid = len(AI_COMPLAINTS) + 1
+        AI_COMPLAINTS.append({"id": cid, "complaint": result["complaint"], "analysis": result["analysis"]})
+        result["complaint_id"] = cid
         return result
     finally:
         os.remove(tmp_path)
+
+ 
+@app.get("/ai/traces")
+def ai_traces():
+    return {"count": len(TRACES), "traces": TRACES}
+
+ 
+@app.get("/ai/complaint/pdf/{cid}")
+def ai_complaint_pdf(cid: int):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from io import BytesIO
+    item = next((c for c in AI_COMPLAINTS if c["id"] == cid), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    text_obj = c.beginText(40, 800)
+    text_obj.setFont("Helvetica", 10)
+    for line in item["complaint"].splitlines():
+        if text_obj.getY() < 40:
+            c.drawText(text_obj)
+            c.showPage()
+            text_obj = c.beginText(40, 800)
+            text_obj.setFont("Helvetica", 10)
+        text_obj.textLine(line[:120])
+    c.drawText(text_obj)
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=complaint_{cid}.pdf"})
 
 
 @app.get("/creditor/{name}")
@@ -197,7 +236,7 @@ def readiness_check():
     """Readiness check - verify DB connection"""
     try:
         s = Session()
-        s.execute("SELECT 1")
+        s.execute(text("SELECT 1"))
         s.close()
         return {"status": "ready", "database": "connected", "s3": s3_enabled}
     except Exception as e:
