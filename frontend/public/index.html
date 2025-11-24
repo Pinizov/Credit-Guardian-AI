@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Guardian AI - Защита на Потребителите</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:8000';
+        
+        // Global state
+        let currentContractId = null;
+        let currentComplaintId = null;
+    </script>
+
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                    <h1 class="text-xl font-bold">Credit Guardian AI</h1>
+                </div>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#dashboard" class="hover:text-blue-200 transition">Табло</a>
+                    <a href="#gpr-calculator" class="hover:text-blue-200 transition">ГПР Калкулатор</a>
+                    <a href="#contract-analyzer" class="hover:text-blue-200 transition">Анализ на Договори</a>
+                    <a href="#creditors" class="hover:text-blue-200 transition">Кредитори</a>
+                    <a href="#legal-search" class="hover:text-blue-200 transition">Правна База</a>
+                </div>
+                <button class="md:hidden" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <a href="#dashboard" class="block py-2 hover:text-blue-200">Табло</a>
+                <a href="#gpr-calculator" class="block py-2 hover:text-blue-200">ГПР Калкулатор</a>
+                <a href="#contract-analyzer" class="block py-2 hover:text-blue-200">Анализ на Договори</a>
+                <a href="#creditors" class="block py-2 hover:text-blue-200">Кредитори</a>
+                <a href="#legal-search" class="block py-2 hover:text-blue-200">Правна База</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-4xl md:text-6xl font-bold mb-6 slide-in">
+                Защитете Своите Права като Потребител
+            </h2>
+            <p class="text-xl md:text-2xl mb-8 opacity-90">
+                AI-платформа за анализ на кредитни договори с 5,763 български закона
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <button onclick="scrollToSection('gpr-calculator')" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <i class="fas fa-calculator mr-2"></i>ГПР Калкулатор
+                </button>
+                <button onclick="scrollToSection('contract-analyzer')" class="bg-transparent border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
+                    <i class="fas fa-file-contract mr-2"></i>Анализ на Договор
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">Статистики и Преглед</h3>
+            
+            <!-- Stats Cards -->
+            <div id="statsCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Legal Stats -->
+            <div id="legalStats" class="bg-gradient-to-r from-purple-100 to-blue-100 p-6 rounded-lg mb-8">
+                <h4 class="text-xl font-semibold mb-4">📚 Правна База Данни</h4>
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GPR Calculator Section -->
+    <section id="gpr-calculator" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">ГПР Калкулатор</h3>
+            
+            <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                <form id="gprForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Сума на кредита (лв)</label>
+                            <input type="number" id="loanAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10000" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Обща дължима сума (лв)</label>
+                            <input type="number" id="totalRepayment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="12000" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Срок (месеци)</label>
+                            <input type="number" id="loanTerm" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="12" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Обявена ГПР (%)</label>
+                            <input type="number" id="declaredAPR" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="15.5">
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="calculateGPR()" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-calculator mr-2"></i>Изчисли ГПР
+                    </button>
+                </form>
+                
+                <div id="gprResults" class="hidden mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 class="text-xl font-semibold mb-4 text-green-800">Резултати от Изчисленията</h4>
+                    <div id="gprResultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contract Analyzer Section -->
+    <section id="contract-analyzer" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">AI Анализ на Договори</h3>
+            
+            <div class="max-w-4xl mx-auto">
+                <!-- User Information Form -->
+                <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                    <h4 class="text-xl font-semibold mb-4">Вашите данни</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Име и фамилия *</label>
+                            <input type="text" id="userName" class="w-full px-4 py-2 border rounded-lg" placeholder="Иван Иванов" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Имейл</label>
+                            <input type="email" id="userEmail" class="w-full px-4 py-2 border rounded-lg" placeholder="ivan@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Телефон</label>
+                            <input type="tel" id="userPhone" class="w-full px-4 py-2 border rounded-lg" placeholder="+359888123456">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ЕГН</label>
+                            <input type="text" id="userEgn" class="w-full px-4 py-2 border rounded-lg" placeholder="1234567890">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Адрес</label>
+                            <input type="text" id="userAddress" class="w-full px-4 py-2 border rounded-lg" placeholder="ул. Цар Борис III 123, София">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center shadow-lg">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                    <h4 class="text-xl font-semibold mb-4">Качете Вашия Договор</h4>
+                    <p class="text-gray-600 mb-6">Поддържаме PDF формат</p>
+                    <input type="file" id="contractFile" accept=".pdf" class="hidden">
+                    <button onclick="document.getElementById('contractFile').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-upload mr-2"></i>Избери PDF Файл
+                    </button>
+                    <div id="uploadStatus" class="mt-4"></div>
+                </div>
+                
+                <!-- Analysis Results -->
+                <div id="analysisResults" class="hidden mt-8">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h4 class="text-2xl font-semibold mb-4">✅ Анализ Завършен</h4>
+                        <div id="analysisContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Creditors Section -->
+    <section id="creditors" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">База Данни за Кредитори</h3>
+            
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="text" id="creditorSearch" placeholder="Търси кредитор по име или БУЛСТАТ" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="searchCreditors()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-search mr-2"></i>Търсене
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="creditorsTable" class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal Search Section -->
+    <section id="legal-search" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">Търсене в Българското Законодателство</h3>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="flex gap-4 mb-6">
+                        <input type="text" id="legalSearchQuery" placeholder="договор, кредит, ГПР, потребител..." class="flex-1 px-4 py-2 border rounded-lg">
+                        <button onclick="searchLegalArticles()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
+                            <i class="fas fa-search mr-2"></i>Търси
+                        </button>
+                    </div>
+                    
+                    <div id="legalSearchResults"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Credit Guardian AI</h5>
+                    <p class="text-gray-400">Защитаваме правата на българските потребители чрез модерни AI технологии.</p>
+                </div>
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Правна Информация</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>База: 5,763 закона</li>
+                        <li>ЗПК, ЗЗП, ЗЗД</li>
+                        <li>AI анализ с GPT-4</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Контакти</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fas fa-envelope mr-2"></i>info@creditguardian.bg</li>
+                        <li><i class="fas fa-phone mr-2"></i>+359 2 123 4567</li>
+                        <li><i class="fas fa-map-marker-alt mr-2"></i>София, България</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 Credit Guardian AI. Всички права запазени.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
