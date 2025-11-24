@@ -3,9 +3,11 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import tempfile, os
+import tempfile
+import os
 from analyzers.gpr_calculator import GPRCalculator
 from analyzers.contract_analyzer import ContractAnalyzer
+from ai_agent.agent_executor import AgentExecutor
 from database.models import Session, Creditor, Violation, CourtCase, UnfairClause
 from utils.s3_storage import init_s3, upload_contract_to_s3
 
@@ -27,11 +29,13 @@ if s3_enabled:
 else:
     print("⚠ S3 storage disabled (missing AWS credentials)")
 
+
 class GPRRequest(BaseModel):
     amount: float
     total_repayment: float
     term_months: int
     fees: list = []
+
 
 class GPRVerifyRequest(BaseModel):
     declared_gpr: float
@@ -42,6 +46,8 @@ class GPRVerifyRequest(BaseModel):
 
 gpr_calc = GPRCalculator()
 contract_analyzer = ContractAnalyzer()
+ai_executor = AgentExecutor()
+
 
 @app.post("/gpr/calculate")
 def calculate_gpr(req: GPRRequest):
@@ -52,6 +58,7 @@ def calculate_gpr(req: GPRRequest):
         term_months=req.term_months
     )
     return result
+
 
 @app.post("/gpr/verify")
 def verify_gpr(req: GPRVerifyRequest):
@@ -65,6 +72,7 @@ def verify_gpr(req: GPRVerifyRequest):
         }
     )
     return result
+
 
 @app.post("/contract/analyze")
 async def analyze_contract(file: UploadFile = File(...)):
@@ -92,6 +100,23 @@ async def analyze_contract(file: UploadFile = File(...)):
         return analysis
     finally:
         os.remove(tmp_path)
+
+
+@app.post("/ai/analyze")
+async def ai_analyze_contract(file: UploadFile = File(...), name: str = "Потребител", address: str = ""):
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Само PDF се поддържа за AI анализа")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+    try:
+        result = ai_executor.process(tmp_path, {"name": name, "address": address})
+        return result
+    finally:
+        os.remove(tmp_path)
+
 
 @app.get("/creditor/{name}")
 def creditor_info(name: str):
@@ -137,6 +162,7 @@ def creditor_info(name: str):
     s.close()
     return data
 
+
 @app.get("/stats")
 def stats():
     s = Session()
@@ -154,14 +180,17 @@ def stats():
         'unfair_clauses': clauses
     }
 
+
 @app.get("/")
 def root():
     return JSONResponse({"service": "Credit Guardian API", "endpoints": ["/gpr/calculate", "/gpr/verify", "/contract/analyze", "/creditor/{name}", "/stats"]})
+
 
 @app.get("/health")
 def health_check():
     """Health check endpoint for load balancers/k8s"""
     return {"status": "healthy", "service": "credit-guardian-api"}
+
 
 @app.get("/readiness")
 def readiness_check():
@@ -173,6 +202,7 @@ def readiness_check():
         return {"status": "ready", "database": "connected", "s3": s3_enabled}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

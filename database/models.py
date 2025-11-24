@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -12,10 +13,10 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Mapped,
 Base = declarative_base()
 
 # Engine & Session factory (default SQLite, override via DATABASE_URL env var)
-import os
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///credit_guardian.db")
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+Session = SessionLocal  # compatibility alias for existing imports
 
 
 class TimestampMixin:
