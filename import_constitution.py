@@ -1,4 +1,5 @@
-"""
+C:/credit-guardian/.venv/Scripts/python.exe advanced_tagging.py
+C:/credit-guardian/.venv/Scripts/python.exe create_ingestion_view.py"""
 Import Bulgarian Constitution from ciela.net
 Special import script for the Constitution of the Republic of Bulgaria
 """

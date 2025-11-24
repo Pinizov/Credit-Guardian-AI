@@ -50,6 +50,17 @@ def fetch(url: str):
         return None
 
 
+def split_heading(raw: str):
+    if not raw:
+        return None, None
+    # Expect pattern like ГЛАВА I - ОБЩИ ПОЛОЖЕНИЯ
+    m = re.match(r"^(?:ЧАСТ|ГЛАВА|РАЗДЕЛ|ПОДРАЗДЕЛ)\s+([IVXLC\d]+)(?:\s*[-–—]\s*(.*))?", raw.strip(), re.IGNORECASE)
+    if m:
+        num = m.group(1)
+        title = (m.group(2) or '').strip() or None
+        return num, title
+    return None, raw
+
 def parse_articles(full_text: str):
     # Precompute heading positions
     headings = []
@@ -58,7 +69,6 @@ def parse_articles(full_text: str):
             headings.append((m.start(), kind, m.group(2)))
     headings.sort(key=lambda x: x[0])
 
-    # Build list of article matches
     matches = list(ARTICLE_PATTERN.finditer(full_text))
     articles = []
     for i, m in enumerate(matches):
@@ -68,16 +78,17 @@ def parse_articles(full_text: str):
         if len(segment) < 50:
             continue
         art_num = m.group(2)
-        # Find nearest preceding chapter/section
-        chapter = section = None
+        chapter_raw = section_raw = None
         for pos, kind, text in reversed([h for h in headings if h[0] <= start]):
-            if kind == 'chapter' and chapter is None:
-                chapter = text
-            if kind == 'section' and section is None:
-                section = text
-            if chapter and section:
+            if kind == 'chapter' and chapter_raw is None:
+                chapter_raw = text
+            if kind == 'section' and section_raw is None:
+                section_raw = text
+            if chapter_raw and section_raw:
                 break
-        articles.append((art_num, segment, chapter, section))
+        chap_num, chap_title = split_heading(chapter_raw)
+        sec_num, sec_title = split_heading(section_raw)
+        articles.append((art_num, segment, chapter_raw, section_raw, chap_num, chap_title, sec_num, sec_title))
     return articles
 
 
@@ -103,9 +114,9 @@ def enrich():
         cur.execute("DELETE FROM legal_articles WHERE document_id=?", (doc_id,))
         now = datetime.utcnow()
         added = 0
-        for num, content, chapter, section in articles:
-            cur.execute("INSERT INTO legal_articles (document_id, article_number, title, content, chapter, section, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
-                        (doc_id, num, f"Член {num}", content[:MAX_ARTICLE_LEN], chapter, section, now, now))
+        for num, content, chapter_raw, section_raw, chap_num, chap_title, sec_num, sec_title in articles:
+            cur.execute("INSERT INTO legal_articles (document_id, article_number, title, content, chapter, section, chapter_number, chapter_title, section_number, section_title, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (doc_id, num, f"Член {num}", content[:MAX_ARTICLE_LEN], chapter_raw, section_raw, chap_num, chap_title, sec_num, sec_title, now, now))
             added += 1
         conn.commit()
         print(f"  ✅ Articles: {added}")
