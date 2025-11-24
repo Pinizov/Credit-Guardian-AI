@@ -29,7 +29,7 @@ services:
       - DATABASE_URL=postgresql+psycopg2://cg_user:cg_pass@db:5432/credit_guardian
       - LOG_LEVEL=INFO
     ports:
-      - "8000:8000"
+      - "8080:8000"
     volumes:
       - .:/app
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -61,7 +61,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s

@@ -2,7 +2,6 @@
 Processes files from a specified local folder and imports them into the database.
 """
 from __future__ import annotations
-import os
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -11,6 +10,7 @@ import PyPDF2
 import pandas as pd
 
 logger = logging.getLogger("scrapers.local_folder")
+
 
 class LocalFolderScraper(BaseScraper):
     """Scraper for reading legal documents from local filesystem."""
@@ -57,12 +57,7 @@ class LocalFolderScraper(BaseScraper):
     def _extract_pdf_text(self, file_path: Path) -> str:
         """Extract text from PDF file with timeout protection."""
         try:
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("PDF extraction timeout")
-            
-            # Set 10 second timeout (Windows doesn't support signal.alarm, so use try-except)
+            # Windows doesn't support signal.alarm, so we use try-except for timeout protection
             with open(file_path, 'rb') as f:
                 try:
                     reader = PyPDF2.PdfReader(f)
@@ -179,8 +174,10 @@ class LocalFolderScraper(BaseScraper):
         }
 
 
-def scrape_legal_data_folder(folder_path: str = r"C:\Users\User\Downloads\Legal Data",
-                              output_json: Optional[str] = None) -> Dict[str, Any]:
+def scrape_legal_data_folder(
+    folder_path: str = r"C:\Users\User\Downloads\Legal Data",
+    output_json: Optional[str] = None
+) -> Dict[str, Any]:
     """Convenience function to scrape the Legal Data folder.
     
     Args:

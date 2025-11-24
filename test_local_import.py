@@ -1,9 +1,11 @@
 """Quick test of local data import - just count files and show structure."""
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scrapers'))
 
 from local_folder_scraper import LocalFolderScraper
+
 
 def test_import():
     print("Testing local legal data folder...")
@@ -26,6 +28,7 @@ def test_import():
     print("\n📊 Summary by extension:")
     for ext, count in sorted(extensions.items()):
         print(f"  {ext}: {count} files")
+
 
 if __name__ == "__main__":
     test_import()

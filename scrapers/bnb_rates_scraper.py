@@ -2,10 +2,11 @@
 Placeholder implementation: outlines approach for extracting monthly base rate and deposit/credit stats.
 """
 from __future__ import annotations
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime
 from scrapers.base_scraper import BaseScraper
 from bs4 import BeautifulSoup  # type: ignore
+
 
 class BNBRatesScraper(BaseScraper):
     name = "bnb_rates"
@@ -39,6 +40,7 @@ class BNBRatesScraper(BaseScraper):
                     "rate": rate_val,
                 })
         return data
+
 
 if __name__ == "__main__":  # manual run
     scraper = BNBRatesScraper()

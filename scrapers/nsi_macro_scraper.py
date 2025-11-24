@@ -9,6 +9,7 @@ import csv
 import io
 import requests
 
+
 class NSIMacroScraper(BaseScraper):
     name = "nsi_macro"
     base_url = "https://www.nsi.bg"
@@ -52,6 +53,7 @@ class NSIMacroScraper(BaseScraper):
                     "value": val_num,
                 })
         return data
+
 
 if __name__ == "__main__":
     scraper = NSIMacroScraper()

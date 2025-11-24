@@ -7,6 +7,7 @@ from datetime import datetime
 from scrapers.base_scraper import BaseScraper
 from bs4 import BeautifulSoup  # type: ignore
 
+
 class KZPComplaintsScraper(BaseScraper):
     name = "kzp_complaints"
     base_url = "https://kzp.bg"
@@ -53,6 +54,7 @@ class KZPComplaintsScraper(BaseScraper):
             data[key] = parsed
             self._sleep()
         return data
+
 
 if __name__ == "__main__":
     scraper = KZPComplaintsScraper()

@@ -7,6 +7,7 @@ from datetime import datetime
 from scrapers.base_scraper import BaseScraper
 from bs4 import BeautifulSoup  # type: ignore
 
+
 class EURLexScraper(BaseScraper):
     name = "eur_lex"
     base_url = "https://eur-lex.europa.eu"
@@ -35,6 +36,7 @@ class EURLexScraper(BaseScraper):
                     "url": full,
                 })
         return data
+
 
 if __name__ == "__main__":
     scraper = EURLexScraper()

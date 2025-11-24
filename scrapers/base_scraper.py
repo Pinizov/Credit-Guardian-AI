@@ -6,7 +6,7 @@ import time
 import random
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Iterable, Tuple
+from typing import Any, Dict, Optional
 import logging
 import requests
 
@@ -23,6 +23,7 @@ DEFAULT_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "bg,en;q=0.9",
 }
+
 
 class BaseScraper(ABC):
     name: str = "base"
