@@ -47,7 +47,24 @@ export default function ContractAnalyzer() {
 
   return (
     <div className="card">
-      <h2>Анализ на договор</h2>
+      <h2>📄 Анализ на кредитен договор</h2>
+      
+      <div className="welcome-message" style={{backgroundColor: '#e3f2fd', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+        <h3 style={{margin: '0 0 10px 0', color: '#1976d2'}}>👋 Добре дошли в Credit Guardian!</h3>
+        <p style={{margin: '5px 0', lineHeight: '1.6'}}>
+          Качете вашия кредитен договор и нашият AI агент ще анализира:
+        </p>
+        <ul style={{marginLeft: '20px', lineHeight: '1.8'}}>
+          <li>✅ Правилност на ГПР (Годишен процент на разходите)</li>
+          <li>⚠️ Неравноправни клаузи и забранени условия</li>
+          <li>💰 Незаконни такси и скрити разходи</li>
+          <li>🔍 История на нарушения от кредитора</li>
+          <li>📋 Съответствие със Закона за потребителския кредит</li>
+        </ul>
+        <p style={{margin: '10px 0 0 0', fontSize: '14px', color: '#666'}}>
+          💡 <strong>Съвет:</strong> Подгответе договора в PDF, DOCX или TXT формат за най-добри резултати.
+        </p>
+      </div>
       
       <div className="upload-zone" onClick={() => document.getElementById('fileInput').click()}>
         <input
@@ -56,7 +73,8 @@ export default function ContractAnalyzer() {
           accept=".pdf,.docx,.txt"
           onChange={handleFileChange}
         />
-        <p>{file ? `Избран: ${file.name}` : 'Кликнете за избор на файл (PDF, DOCX, TXT)'}</p>
+        <p>{file ? `✅ Избран: ${file.name}` : '📎 Кликнете за избор на файл (PDF, DOCX, TXT)'}</p>
+        {!file && <p style={{fontSize: '14px', color: '#888', marginTop: '10px'}}>или плъзнете файл тук</p>}
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
