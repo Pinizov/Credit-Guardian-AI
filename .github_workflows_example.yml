@@ -1,0 +1,169 @@
+# Example GitHub Actions Workflow for CI/CD Integration
+# Save this as .github/workflows/evaluate-agent.yml
+
+name: AI Agent Evaluation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Run evaluation framework tests
+      run: |
+        pytest tests/test_evaluation.py -v --cov=evaluation --cov-report=xml
+    
+    - name: Create sample dataset (if not exists)
+      run: |
+        if [ ! -f evaluation/test_dataset.json ]; then
+          python run_evaluation.py --create-sample
+        fi
+    
+    - name: Run agent evaluation
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        python run_evaluation.py \
+          --dataset evaluation/test_dataset.json \
+          --output evaluation/results_${{ github.run_number }}.json \
+          --report evaluation/report_${{ github.run_number }}.txt \
+          --verbose
+      continue-on-error: true
+    
+    - name: Display evaluation report
+      if: always()
+      run: |
+        if [ -f evaluation/report_${{ github.run_number }}.txt ]; then
+          cat evaluation/report_${{ github.run_number }}.txt
+        fi
+    
+    - name: Upload evaluation results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: evaluation-results-${{ github.run_number }}
+        path: |
+          evaluation/results_*.json
+          evaluation/report_*.txt
+        retention-days: 30
+    
+    - name: Check evaluation metrics
+      if: success()
+      run: |
+        python -c "
+        import json
+        import sys
+        
+        # Load results
+        with open('evaluation/results_${{ github.run_number }}.json', 'r') as f:
+            data = json.load(f)
+        
+        # Calculate average metrics
+        results = data.get('results', [])
+        if not results:
+            print('⚠️  No evaluation results')
+            sys.exit(0)
+        
+        # Extract metrics
+        metrics_list = [r.get('metrics', {}) for r in results if 'metrics' in r]
+        if not metrics_list:
+            print('⚠️  No metrics calculated')
+            sys.exit(0)
+        
+        # Calculate averages
+        avg_accuracy = sum(m.get('accuracy', 0) for m in metrics_list) / len(metrics_list)
+        avg_f1 = sum(m.get('violation_f1', 0) for m in metrics_list) / len(metrics_list)
+        
+        print(f'📊 Average Accuracy: {avg_accuracy:.2%}')
+        print(f'📊 Average F1 Score: {avg_f1:.2%}')
+        
+        # Quality gates
+        MIN_ACCURACY = 0.70
+        MIN_F1 = 0.70
+        
+        if avg_accuracy < MIN_ACCURACY:
+            print(f'❌ Accuracy {avg_accuracy:.2%} below threshold {MIN_ACCURACY:.2%}')
+            sys.exit(1)
+        
+        if avg_f1 < MIN_F1:
+            print(f'❌ F1 Score {avg_f1:.2%} below threshold {MIN_F1:.2%}')
+            sys.exit(1)
+        
+        print('✅ All quality gates passed')
+        "
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: evaluation
+        name: evaluation-coverage
+
+  trace-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test tracing setup
+      run: |
+        python -c "
+        from ai_agent.tracing import initialize_tracing, trace_span, add_trace_event
+        import time
+        
+        initialize_tracing(service_name='ci-test', console_export=False)
+        
+        with trace_span('test_operation', attributes={'ci': 'true'}):
+            add_trace_event('test_start')
+            time.sleep(0.1)
+            add_trace_event('test_complete')
+        
+        print('✅ Tracing test successful')
+        "
+    
+    - name: Run demo features
+      run: |
+        python demo_features.py

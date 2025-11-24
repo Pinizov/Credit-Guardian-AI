@@ -1,0 +1,47 @@
+============================================================
+CREDIT GUARDIAN AI AGENT - EVALUATION REPORT
+============================================================
+
+Total Test Cases: 3
+
+------------------------------------------------------------
+METRIC SUMMARY
+------------------------------------------------------------
+
+ACCURACY:
+  Mean:   0.000
+  Median: 0.000
+  Min:    0.000
+  Max:    0.000
+
+VIOLATION_RECALL:
+  Mean:   0.333
+  Median: 0.000
+  Min:    0.000
+  Max:    1.000
+
+VIOLATION_PRECISION:
+  Mean:   0.333
+  Median: 0.000
+  Min:    0.000
+  Max:    1.000
+
+VIOLATION_F1:
+  Mean:   0.333
+  Median: 0.000
+  Min:    0.000
+  Max:    1.000
+
+GPR_ACCURACY:
+  Mean:   0.000
+  Median: 0.000
+  Min:    0.000
+  Max:    0.000
+
+COMPLAINT_QUALITY:
+  Mean:   0.116
+  Median: 0.174
+  Min:    0.000
+  Max:    0.174
+
+============================================================

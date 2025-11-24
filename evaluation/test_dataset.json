@@ -1,0 +1,129 @@
+{
+  "version": "1.0",
+  "description": "Credit Guardian AI Agent Evaluation Dataset",
+  "test_cases": [
+    {
+      "id": "test_case_001",
+      "description": "Standard consumer loan with hidden fees",
+      "input": {
+        "pdf_path": "tests/fixtures/sample_contract_001.pdf",
+        "user": {
+          "name": "Иван Петров",
+          "address": "гр. София, ул. Витоша 123"
+        }
+      },
+      "expected": {
+        "analysis": {
+          "contract_number": "K-2024-001234",
+          "creditor": "Бързи Кредити ЕООД",
+          "principal": 5000.0,
+          "stated_apr": 35.5,
+          "fees": [
+            {
+              "name": "Такса управление",
+              "amount": 50.0,
+              "frequency": "месечна"
+            },
+            {
+              "name": "Такса оценка",
+              "amount": 150.0,
+              "frequency": "еднократна"
+            }
+          ],
+          "violations": [
+            "Неразкрита информация за действителния ГПР",
+            "Скрита такса за управление на сметка",
+            "Неравноправна клауза за едностранно изменение"
+          ]
+        },
+        "violations": [
+          "Неразкрита информация за действителния ГПР",
+          "Скрита такса за управление на сметка",
+          "Неравноправна клауза за едностранно изменение"
+        ],
+        "gpr": 45.8,
+        "complaint_elements": [
+          "жалба",
+          "КЗП",
+          "потребител",
+          "договор",
+          "нарушение"
+        ]
+      }
+    },
+    {
+      "id": "test_case_002",
+      "description": "Payday loan with excessive APR",
+      "input": {
+        "pdf_path": "tests/fixtures/sample_contract_002.pdf",
+        "user": {
+          "name": "Мария Георгиева",
+          "address": "гр. Пловдив, бул. Цар Борис III №45"
+        }
+      },
+      "expected": {
+        "analysis": {
+          "contract_number": "PL-2024-05678",
+          "creditor": "Експрес Финанс АД",
+          "principal": 1000.0,
+          "stated_apr": 120.0,
+          "fees": [
+            {
+              "name": "Административна такса",
+              "amount": 100.0,
+              "frequency": "еднократна"
+            }
+          ],
+          "violations": [
+            "ГПР над законовия лихвен таван",
+            "Недостатъчна информация за правото на предсрочно погасяване",
+            "Липсва ясна информация за начина на изчисление на ГПР"
+          ]
+        },
+        "violations": [
+          "ГПР над законовия лихвен таван",
+          "Недостатъчна информация за правото на предсрочно погасяване",
+          "Липсва ясна информация за начина на изчисление на ГПР"
+        ],
+        "gpr": 145.0,
+        "complaint_elements": [
+          "жалба",
+          "КЗП",
+          "лихвен таван",
+          "договор",
+          "нарушение"
+        ]
+      }
+    },
+    {
+      "id": "test_case_003",
+      "description": "Clean contract with no violations",
+      "input": {
+        "pdf_path": "tests/fixtures/sample_contract_003.pdf",
+        "user": {
+          "name": "Георги Димитров",
+          "address": "гр. Варна, кв. Младост 15"
+        }
+      },
+      "expected": {
+        "analysis": {
+          "contract_number": "CL-2024-09876",
+          "creditor": "Надеждна Банка АД",
+          "principal": 10000.0,
+          "stated_apr": 12.5,
+          "fees": [
+            {
+              "name": "Застрахователна премия",
+              "amount": 50.0,
+              "frequency": "месечна"
+            }
+          ],
+          "violations": []
+        },
+        "violations": [],
+        "gpr": 13.2,
+        "complaint_elements": []
+      }
+    }
+  ]
+}
