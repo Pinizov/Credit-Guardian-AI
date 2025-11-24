@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 127
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | alembic/versions
+  | build
+  | dist
+)/
+'''
