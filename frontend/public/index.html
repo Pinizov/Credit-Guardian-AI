@@ -65,7 +65,7 @@
                     <a href="#creditors" class="hover:text-blue-200 transition">Кредитори</a>
                     <a href="#legal-search" class="hover:text-blue-200 transition">Правна База</a>
                 </div>
-                <button class="md:hidden" onclick="toggleMobileMenu()">
+                <button class="md:hidden" onclick="toggleMobileMenu()" title="Меню" aria-label="Отвори мобилно меню">
                     <i class="fas fa-bars text-xl"></i>
                 </button>
             </div>
@@ -194,7 +194,8 @@
                     <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
                     <h4 class="text-xl font-semibold mb-4">Качете Вашия Договор</h4>
                     <p class="text-gray-600 mb-6">Поддържаме PDF формат</p>
-                    <input type="file" id="contractFile" accept=".pdf" class="hidden">
+                    <label for="contractFile" class="sr-only">Изберете PDF файл на договора</label>
+                    <input type="file" id="contractFile" accept=".pdf" class="hidden" title="Изберете PDF файл на договора" aria-label="Изберете PDF файл на договора">
                     <button onclick="document.getElementById('contractFile').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
                         <i class="fas fa-upload mr-2"></i>Избери PDF Файл
                     </button>

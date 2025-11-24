@@ -11,6 +11,7 @@ from datetime import datetime
 from analyzers.gpr_calculator import GPRCalculator
 from analyzers.contract_analyzer import ContractAnalyzer
 from ai_agent.agent_executor import AgentExecutor
+from ai_agent.ensemble_client import EnsembleAIClient
 from ai_agent.tracing import TRACES
 from database.models import (
     Session, Creditor, Violation, CourtCase, UnfairClause,
@@ -20,8 +21,12 @@ from database.legal_models import LegalDocument, LegalArticle, LegalArticleTag
 from database.embedding_models import ArticleEmbedding
 from sqlalchemy import text
 from utils.s3_storage import init_s3, upload_contract_to_s3
+from api_v2_ensemble import router as ensemble_router
 
 app = FastAPI(title="Credit Guardian API", version="0.1")
+
+# Include V2 Ensemble Router
+app.include_router(ensemble_router)
 
 # CORS for frontend
 app.add_middleware(
@@ -207,6 +212,29 @@ def creditor_info(name: str):
     }
     s.close()
     return data
+
+
+@app.get("/api/creditors")
+def list_creditors(limit: int = 50):
+    """List creditors basic info for dynamic dropdowns/lists"""
+    s = Session()
+    try:
+        creditors = s.query(Creditor).order_by(Creditor.risk_score.desc()).limit(limit).all()
+        return {
+            "count": len(creditors),
+            "creditors": [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "type": c.type,
+                    "risk_score": c.risk_score,
+                    "violations_count": c.violations_count,
+                    "blacklisted": c.is_blacklisted,
+                } for c in creditors
+            ]
+        }
+    finally:
+        s.close()
 
 
 

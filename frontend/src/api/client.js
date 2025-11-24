@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Base only for /api scoped endpoints. Root-level endpoints (e.g. /stats) are fetched directly.
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
@@ -7,20 +8,55 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
-export const getStats = () => api.get('/stats');
+// Root stats (no /api prefix)
+export const getRootStats = async () => {
+  const res = await fetch('/stats');
+  if (!res.ok) throw new Error('Failed to load root stats');
+  return res.json();
+};
+
+// Legal database stats (/api/legal/stats)
+export const getLegalStats = () => api.get('/legal/stats');
 
 export const getCreditor = (name) => api.get(`/creditor/${encodeURIComponent(name)}`);
+
+export const getCreditors = () => api.get('/creditors');
 
 export const calculateGPR = (data) => api.post('/gpr/calculate', data);
 
 export const verifyGPR = (data) => api.post('/gpr/verify', data);
 
-export const analyzeContract = (file) => {
+// Legacy simple analysis endpoint (no user metadata persistence)
+export const analyzeContractSimple = (file) => {
   const formData = new FormData();
   formData.append('file', file);
   return api.post('/contract/analyze', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
+};
+
+// Full workflow analysis with user fields
+export const analyzeContractFull = (file, fields) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  Object.entries(fields).forEach(([k, v]) => formData.append(k, v || ''));
+  return api.post('/analyze-contract', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+
+export const exportComplaintPdf = async (complaintId) => {
+  const res = await fetch(`/api/complaints/${complaintId}/export`);
+  if (!res.ok) throw new Error('Failed to export complaint');
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `complaint_${complaintId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 export default api;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
 import CreditorSearch from './components/CreditorSearch';
+import CreditorList from './components/CreditorList';
 import GPRCalculator from './components/GPRCalculator';
 import ContractAnalyzer from './components/ContractAnalyzer';
 
@@ -14,6 +15,8 @@ function App() {
         return <Dashboard />;
       case 'creditor':
         return <CreditorSearch />;
+      case 'creditors':
+        return <CreditorList />;
       case 'gpr':
         return <GPRCalculator />;
       case 'contract':
@@ -46,6 +49,12 @@ function App() {
             onClick={() => setActiveTab('creditor')}
           >
             🔍 Проверка на кредитор
+          </button>
+          <button
+            className={activeTab === 'creditors' ? 'active' : ''}
+            onClick={() => setActiveTab('creditors')}
+          >
+            🏢 Списък кредитори
           </button>
           <button
             className={activeTab === 'gpr' ? 'active' : ''}

@@ -1,12 +1,17 @@
 import os
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .tracing import trace_span, add_trace_event
 
 try:
     from openai import OpenAI  # type: ignore
 except Exception:  # pragma: no cover
     OpenAI = None  # fallback when lib missing
+
+try:
+    from .perplexity_client import PerplexityClient
+except ImportError:
+    PerplexityClient = None
 
 SYSTEM_PROMPT = """
 Вие сте експерт по защита на потребителските права при кредити в България.
@@ -69,19 +74,32 @@ SYSTEM_PROMPT = """
 
 
 class CreditAnalysisAgent:
-    def __init__(self, model: str = "gpt-4"):
-        self.api_key = os.getenv("OPENAI_API_KEY")
+    def __init__(self, model: str = "gpt-4", provider: str = "openai"):
+        """Initialize AI agent with specified provider.
+        
+        Args:
+            model: Model name (e.g., "gpt-4" for OpenAI or "llama-3.1-sonar-large-128k-online" for Perplexity)
+            provider: AI provider - "openai" or "perplexity"
+        """
+        self.provider = provider.lower()
         self.model = model
-        self.client = OpenAI(api_key=self.api_key) if self.api_key and OpenAI else None
+        
+        if self.provider == "perplexity":
+            self.api_key = os.getenv("PERPLEXITY_API_KEY")
+            self.client = PerplexityClient(api_key=self.api_key, model=model) if self.api_key and PerplexityClient else None
+        else:  # default to openai
+            self.api_key = os.getenv("OPENAI_API_KEY")
+            self.client = OpenAI(api_key=self.api_key) if self.api_key and OpenAI else None
 
     def analyze_contract(self, contract_text: str) -> Dict[str, Any]:
         with trace_span("llm.analyze_contract", attributes={
             "model": self.model,
+            "provider": self.provider,
             "text_length": len(contract_text),
             "operation": "contract_analysis"
         }, trace_llm=True):
             if not self.client:
-                add_trace_event("llm.unavailable", {"reason": "missing_api_key"})
+                add_trace_event("llm.unavailable", {"reason": "missing_api_key", "provider": self.provider})
                 return {
                     "contract_number": "UNKNOWN",
                     "creditor": "Неразпознат",
@@ -89,9 +107,20 @@ class CreditAnalysisAgent:
                     "stated_apr": 0,
                     "fees": [],
                     "violations": [],
-                    "summary": "AI анализ недостъпен (липсва OPENAI_API_KEY)",
+                    "summary": f"AI анализ недостъпен (липсва {self.provider.upper()}_API_KEY)",
                 }
             
+            # Use Perplexity client if configured
+            if self.provider == "perplexity" and PerplexityClient:
+                add_trace_event("llm.using_perplexity", {"model": self.model})
+                result = self.client.analyze_contract(contract_text, SYSTEM_PROMPT)
+                add_trace_event("llm.response_received", {
+                    "provider": "perplexity",
+                    "has_error": "error" in result
+                })
+                return result
+            
+            # Use OpenAI client
             prompt = (
                 "Анализирай договора и върни JSON със следните ключове: "
                 "contract_number, creditor, principal, stated_apr, fees(list), violations(list), summary.\n" + contract_text[:8000]
@@ -126,21 +155,38 @@ class CreditAnalysisAgent:
     def generate_complaint(self, analysis: Dict[str, Any], user_name: str, user_address: str) -> str:
         with trace_span("llm.generate_complaint", attributes={
             "model": self.model,
+            "provider": self.provider,
             "user_name_length": len(user_name),
             "operation": "complaint_generation"
         }, trace_llm=True):
             if not self.client:
-                add_trace_event("llm.unavailable", {"reason": "missing_api_key"})
-                return "Жалба не може да бъде генерирана (липсва OPENAI_API_KEY)."
+                add_trace_event("llm.unavailable", {"reason": "missing_api_key", "provider": self.provider})
+                return f"Жалба не може да бъде генерирана (липсва {self.provider.upper()}_API_KEY)."
             
             body = json.dumps(analysis, ensure_ascii=False)
             prompt = f"Генерирай официална жалба на български до КЗП въз основа на анализа: {body}\nИме: {user_name}\nАдрес: {user_address}"
             
             add_trace_event("llm.request_prepared", {
                 "prompt_length": len(prompt),
-                "temperature": 0.3
+                "temperature": 0.3,
+                "provider": self.provider
             })
             
+            # Use Perplexity
+            if self.provider == "perplexity" and PerplexityClient:
+                messages = [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ]
+                response = self.client.chat_completion(messages, temperature=0.3)
+                result = response.get("choices", [{}])[0].get("message", {}).get("content", "Грешка при генериране")
+                add_trace_event("llm.response_received", {
+                    "response_length": len(result),
+                    "provider": "perplexity"
+                })
+                return result
+            
+            # Use OpenAI
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
