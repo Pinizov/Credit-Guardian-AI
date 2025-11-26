@@ -66,7 +66,7 @@ ai_executor = AgentExecutor()
 AI_COMPLAINTS = []  # simple in-memory store [{'id':int,'complaint':str,'analysis':dict}]
 
 
-@app.post("/gpr/calculate")
+@app.post("/api/gpr/calculate")
 def calculate_gpr(req: GPRRequest):
     result = gpr_calc.calculate_gpr(
         loan_amount=req.amount,
@@ -77,7 +77,7 @@ def calculate_gpr(req: GPRRequest):
     return result
 
 
-@app.post("/gpr/verify")
+@app.post("/api/gpr/verify")
 def verify_gpr(req: GPRVerifyRequest):
     result = gpr_calc.verify_gpr_declaration(
         req.declared_gpr,
@@ -91,7 +91,7 @@ def verify_gpr(req: GPRVerifyRequest):
     return result
 
 
-@app.post("/contract/analyze")
+@app.post("/api/contract/analyze")
 async def analyze_contract(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in [".pdf", ".docx", ".txt"]:
@@ -119,7 +119,7 @@ async def analyze_contract(file: UploadFile = File(...)):
         os.remove(tmp_path)
 
 
-@app.post("/ai/analyze")
+@app.post("/api/ai/analyze")
 async def ai_analyze_contract(file: UploadFile = File(...), name: str = "Потребител", address: str = ""):
     ext = os.path.splitext(file.filename)[1].lower()
     if ext != ".pdf":
@@ -138,12 +138,12 @@ async def ai_analyze_contract(file: UploadFile = File(...), name: str = "Пот�
         os.remove(tmp_path)
 
  
-@app.get("/ai/traces")
+@app.get("/api/ai/traces")
 def ai_traces():
     return {"count": len(TRACES), "traces": TRACES}
 
  
-@app.get("/ai/complaint/pdf/{cid}")
+@app.get("/api/ai/complaint/pdf/{cid}")
 def ai_complaint_pdf(cid: int):
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
@@ -169,7 +169,7 @@ def ai_complaint_pdf(cid: int):
     return StreamingResponse(buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=complaint_{cid}.pdf"})
 
 
-@app.get("/creditor/{name}")
+@app.get("/api/creditor/{name}")
 def creditor_info(name: str):
     s = Session()
     c = s.query(Creditor).filter(Creditor.name.ilike(f"%{name}%")).first()
@@ -775,7 +775,7 @@ def stats():
 
 @app.get("/")
 def root():
-    return JSONResponse({"service": "Credit Guardian API", "endpoints": ["/gpr/calculate", "/gpr/verify", "/contract/analyze", "/creditor/{name}", "/stats"]})
+    return JSONResponse({"service": "Credit Guardian API", "endpoints": ["/api/gpr/calculate", "/api/gpr/verify", "/api/contract/analyze", "/api/creditor/{name}", "/stats"]})
 
 
 @app.get("/health")

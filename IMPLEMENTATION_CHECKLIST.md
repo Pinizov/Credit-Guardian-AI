@@ -136,7 +136,9 @@
 
 2. **Set OpenAI API Key** (if testing with real agent)
    ```powershell
-   $env:OPENAI_API_KEY = "your-api-key-here"
+   # For Perplexity (cloud):
+   $env:PERPLEXITY_API_KEY = "pplx-your-api-key-here"
+   # OR for Ollama (local): just run `ollama serve`
    ```
 
 3. **Create Sample Dataset**
@@ -180,7 +182,7 @@
 
 9. **Set Up CI/CD** (Optional)
    - Copy `.github_workflows_example.yml` to `.github/workflows/evaluate-agent.yml`
-   - Add `OPENAI_API_KEY` to GitHub Secrets
+   - Add `PERPLEXITY_API_KEY` to GitHub Secrets
    - Commit and push
 
 ### Future Enhancements
@@ -248,7 +250,7 @@ python run_evaluation.py --create-sample
 python demo_features.py
 
 # 5. (Optional) Run evaluation with API key
-$env:OPENAI_API_KEY = "your-key"
+$env:PERPLEXITY_API_KEY = "pplx-your-key"  # Or use Ollama locally
 python run_evaluation.py --verbose
 ```
 

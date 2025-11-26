@@ -243,8 +243,8 @@ Create test PDF files in `tests/fixtures/`:
 ### 4. Configure Environment
 
 ```bash
-# Set OpenAI API key (required for agent)
-$env:OPENAI_API_KEY="your-api-key-here"
+# Set Perplexity API key (or use Ollama locally)
+$env:PERPLEXITY_API_KEY="pplx-your-api-key-here"
 
 # Optional: Set OTLP endpoint for trace export
 $env:OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
@@ -434,8 +434,8 @@ python -c "import json; print(json.load(open('evaluation/test_dataset.json')))"
 # Run with verbose mode
 python run_evaluation.py --verbose
 
-# Check OPENAI_API_KEY is set
-echo $env:OPENAI_API_KEY
+# Check PERPLEXITY_API_KEY is set
+echo $env:PERPLEXITY_API_KEY
 ```
 
 ---

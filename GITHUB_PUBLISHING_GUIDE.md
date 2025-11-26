@@ -222,7 +222,7 @@ Get-Content app.py,database/models.py | Select-String -Pattern "password|secret|
 api_key = "sk-abc123..."
 
 # GOOD
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("PERPLEXITY_API_KEY")  # Or use Ollama locally
 ```
 
 ---

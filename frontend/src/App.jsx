@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import './App.css';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import Dashboard from './components/Dashboard';
 import CreditorSearch from './components/CreditorSearch';
 import CreditorList from './components/CreditorList';
@@ -27,51 +28,22 @@ function App() {
   };
 
   return (
-    <div>
-      <div className="header">
-        <div className="container">
-          <h1>🛡️ Credit Guardian</h1>
-          <p style={{fontSize: '18px', marginTop: '10px'}}>Вашият дигитален защитник при потребителско кредитиране</p>
-          <p style={{fontSize: '14px', color: '#bbb', marginTop: '5px'}}>Анализира договори • Проверява ГПР • Открива нарушения • Генерира жалби</p>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Header with navigation */}
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Page Content */}
+          <div className="animate-fade-in">
+            {renderContent()}
+          </div>
         </div>
-      </div>
+      </main>
 
-      <div className="container">
-        <nav className="nav">
-          <button
-            className={activeTab === 'dashboard' ? 'active' : ''}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            📊 Статистика
-          </button>
-          <button
-            className={activeTab === 'creditor' ? 'active' : ''}
-            onClick={() => setActiveTab('creditor')}
-          >
-            🔍 Проверка на кредитор
-          </button>
-          <button
-            className={activeTab === 'creditors' ? 'active' : ''}
-            onClick={() => setActiveTab('creditors')}
-          >
-            🏢 Списък кредитори
-          </button>
-          <button
-            className={activeTab === 'gpr' ? 'active' : ''}
-            onClick={() => setActiveTab('gpr')}
-          >
-            🧮 ГПР Калкулатор
-          </button>
-          <button
-            className={activeTab === 'contract' ? 'active' : ''}
-            onClick={() => setActiveTab('contract')}
-          >
-            📄 Анализ на договор
-          </button>
-        </nav>
-
-        {renderContent()}
-      </div>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

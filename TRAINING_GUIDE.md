@@ -122,8 +122,9 @@ C:\credit-guardian\
 # 1. Activate environment
 .\.venv\Scripts\Activate.ps1
 
-# 2. Set OpenAI API key
-$env:OPENAI_API_KEY = 'your-key-here'
+# 2. Set API key (Perplexity or use Ollama locally)
+$env:PERPLEXITY_API_KEY = 'pplx-your-key-here'
+# OR for local Ollama: ollama serve && ollama pull llama3.2
 
 # 3. Train the agent (first time only)
 python train_agent.py

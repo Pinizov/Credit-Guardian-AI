@@ -41,7 +41,8 @@ pip install requests
 ### 2. Configure OpenAI API Key
 
 ```powershell
-$env:OPENAI_API_KEY = "sk-your-api-key-here"
+# For embeddings, use Perplexity or local Ollama
+$env:PERPLEXITY_API_KEY = "pplx-your-api-key-here"
 ```
 
 ### 3. Create Embeddings Table
@@ -140,7 +141,7 @@ Use when searching with text query:
 from semantic_search import search_by_text
 import os
 
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("PERPLEXITY_API_KEY")
 
 # Bulgarian query
 results = search_by_text(
@@ -226,7 +227,7 @@ def answer_legal_question(question: str) -> str:
     """Answer legal question using RAG pattern."""
     
     # Step 1: Retrieve relevant articles
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("PERPLEXITY_API_KEY")
     articles = search_by_text(
         query_text=question,
         api_key=api_key,
@@ -273,7 +274,7 @@ def api_search():
     query = data.get('query')
     top_k = data.get('top_k', 10)
     
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("PERPLEXITY_API_KEY")
     results = search_by_text(query, api_key, top_k=top_k)
     
     return jsonify({
@@ -302,16 +303,17 @@ def api_search():
 
 ## 🐛 Troubleshooting
 
-### Issue: `OPENAI_API_KEY` not set
+### Issue: `PERPLEXITY_API_KEY` not set
 
 **Error:**
 ```
-✗ Error: OPENAI_API_KEY environment variable not set
+✗ Error: PERPLEXITY_API_KEY environment variable not set
 ```
 
 **Solution:**
 ```powershell
-$env:OPENAI_API_KEY = "sk-your-api-key"
+$env:PERPLEXITY_API_KEY = "pplx-your-api-key"
+# OR use local Ollama: ollama serve
 ```
 
 ### Issue: Rate limit errors (429)
@@ -386,8 +388,8 @@ LIMIT 20;
 
 ## 🔐 Security Notes
 
-- **API Key Storage**: Never commit `OPENAI_API_KEY` to version control
-- **Cost Control**: Monitor OpenAI usage dashboard to avoid unexpected charges
+- **API Key Storage**: Never commit `PERPLEXITY_API_KEY` to version control
+- **Cost Control**: Monitor Perplexity usage or use local Ollama for free inference
 - **Data Privacy**: Embeddings are derived from text but don't expose original content directly
 
 ## 📚 References

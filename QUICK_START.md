@@ -104,7 +104,12 @@ print(f'Accuracy: {accuracy:.2%}')
 
 2. **Set OpenAI API Key** (for agent testing)
    ```powershell
-   $env:OPENAI_API_KEY = "your-api-key-here"
+   # Option 1: Perplexity (cloud)
+   $env:PERPLEXITY_API_KEY = "pplx-your-api-key-here"
+   
+   # Option 2: Ollama (local, free)
+   # Just run: ollama serve
+   # Then: ollama pull llama3.2
    ```
 
 3. **Create Test Dataset**

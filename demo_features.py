@@ -179,7 +179,7 @@ def main():
         print("=" * 60)
         
         print("\nNext steps:")
-        print("1. Set OPENAI_API_KEY to test with real agent")
+        print("1. Set PERPLEXITY_API_KEY or run Ollama locally")
         print("2. Create test PDF files in tests/fixtures/")
         print("3. Run full evaluation: python run_evaluation.py --verbose")
         print("4. Set up trace export: $env:OTEL_EXPORTER_OTLP_ENDPOINT='http://localhost:4317'")

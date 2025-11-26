@@ -1,0 +1,80 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Database files (use managed database in production)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+credit_guardian.db
+
+# Logs
+*.log
+logs/
+
+# Environment variables (set via Render dashboard)
+.env
+.env.*
+
+# Frontend (separate container)
+frontend/
+node_modules/
+
+# Documentation
+*.md
+docs/
+
+# Evaluation results
+evaluation/results.json
+evaluation/report.txt
+
+# Large files
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+

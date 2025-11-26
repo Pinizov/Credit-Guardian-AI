@@ -207,9 +207,9 @@ from typing import Dict, Any, List
 class CreditAnalysisAgent:
     """AI Agent за анализ на кредитни договори"""
     
-    def __init__(self, api_key: str = None, model: str = "gpt-4"):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.api_key)
+    def __init__(self, api_key: str = None, model: str = "llama3.2", provider: str = "ollama"):
+        self.api_key = api_key or os.getenv("PERPLEXITY_API_KEY")
+        self.provider = provider  # "ollama" for local, "perplexity" for cloud
         self.model = model
         self.system_prompt = """
         Вие сте експертен правен советник специализиран в защита на потребителските права 
@@ -543,8 +543,9 @@ from ai_agent.llm_client import CreditAnalysisAgent
 from ai_agent.agent_executor import AgentExecutor
 from ai_agent.pdf_processor import PDFProcessor
 
-# Инициализация на Agent
-llm_agent = CreditAnalysisAgent(api_key=os.getenv("OPENAI_API_KEY"))
+# Инициализация на Agent (Ollama локално или Perplexity в облака)
+llm_agent = CreditAnalysisAgent(provider="ollama", model="llama3.2")  # Локален Ollama
+# ИЛИ: llm_agent = CreditAnalysisAgent(provider="perplexity", api_key=os.getenv("PERPLEXITY_API_KEY"))
 executor = AgentExecutor(llm_agent)
 
 # ORM модели
@@ -1463,7 +1464,8 @@ services:
     container_name: credit-backend
     environment:
       DATABASE_URL: postgresql://credituser:creditpass123@db:5432/credit_protection
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+      AI_PROVIDER: perplexity  # or "ollama" for local
       FLASK_ENV: production
     ports:
       - "5000:5000"
@@ -1573,7 +1575,7 @@ cd credit-ai-agent
 
 # 2.環境 файл
 cp .env.example .env
-# Редактирайте .env и добавете OPENAI_API_KEY
+# Редактирайте .env и добавете PERPLEXITY_API_KEY (или използвайте Ollama локално)
 
 # 3. Стартиране с Docker
 docker-compose up -d

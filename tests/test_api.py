@@ -29,7 +29,7 @@ def test_gpr_calculate():
         "term_months": 24,
         "fees": []
     }
-    response = client.post("/gpr/calculate", json=payload)
+    response = client.post("/api/gpr/calculate", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "gpr_exact" in data
@@ -44,18 +44,18 @@ def test_gpr_verify():
         "term_months": 24,
         "fees": []
     }
-    response = client.post("/gpr/verify", json=payload)
+    response = client.post("/api/gpr/verify", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "is_correct" in data
     assert "calculated_gpr" in data
 
 def test_creditor_not_found():
-    response = client.get("/creditor/NonExistentBank123456")
+    response = client.get("/api/creditor/NonExistentBank123456")
     assert response.status_code == 404
 
 def test_contract_analyze_invalid_format():
     files = {"file": ("test.exe", b"fake content", "application/octet-stream")}
-    response = client.post("/contract/analyze", files=files)
+    response = client.post("/api/contract/analyze", files=files)
     assert response.status_code == 400
     assert "Поддържат се" in response.json()["detail"]

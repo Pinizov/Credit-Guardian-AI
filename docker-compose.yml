@@ -1,13 +1,51 @@
 version: "3.9"
+
 services:
+  # =============================================================================
+  # OLLAMA - Local LLM Server (FREE!)
+  # =============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: cg_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Remove 'deploy' section if no GPU available - Ollama works on CPU too
+
+  # Pull the model after Ollama starts
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: cg_ollama_pull
+    depends_on:
+      - ollama
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 10
+        ollama pull llama3.2
+        echo "Model llama3.2 ready!"
+
+  # =============================================================================
+  # DATABASE - PostgreSQL
+  # =============================================================================
   db:
     image: postgres:15-alpine
     container_name: cg_postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=credit_guardian
-      - POSTGRES_USER=cg_user
-      - POSTGRES_PASSWORD=cg_pass
+      POSTGRES_DB: credit_guardian
+      POSTGRES_USER: cg_user
+      POSTGRES_PASSWORD: cg_pass
     ports:
       - "5432:5432"
     volumes:
@@ -18,20 +56,39 @@ services:
       timeout: 5s
       retries: 5
 
+  # =============================================================================
+  # BACKEND API - FastAPI
+  # =============================================================================
   api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: cg_api
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
     environment:
-      - DATABASE_URL=postgresql+psycopg2://cg_user:cg_pass@db:5432/credit_guardian
-      - LOG_LEVEL=INFO
+      # Database
+      DATABASE_URL: postgresql+psycopg2://cg_user:cg_pass@db:5432/credit_guardian
+      
+      # AI Provider Configuration
+      AI_PROVIDER: ollama
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2
+      
+      # Alternative: Use Perplexity (cloud)
+      # AI_PROVIDER: perplexity
+      # PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+      
+      # Logging
+      LOG_LEVEL: INFO
     ports:
       - "8080:8000"
     volumes:
-      - .:/app
+      - ./uploads:/app/uploads
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -40,28 +97,37 @@ services:
       retries: 3
       start_period: 40s
 
+  # =============================================================================
+  # DATABASE MIGRATIONS
+  # =============================================================================
   migrate:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: cg_migrate
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+psycopg2://cg_user:cg_pass@db:5432/credit_guardian
-    entrypoint: ["sh", "-c", "alembic upgrade head"]
+      DATABASE_URL: postgresql+psycopg2://cg_user:cg_pass@db:5432/credit_guardian
+    entrypoint: ["sh", "-c", "alembic upgrade head && python database/seed_db.py"]
+    restart: "no"
 
+  # =============================================================================
+  # FRONTEND - React + Vite + Nginx
+  # =============================================================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080
     container_name: cg_frontend
+    restart: unless-stopped
     depends_on:
       - api
     ports:
       - "3000:80"
-    environment:
-      - VITE_API_URL=http://localhost:8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -70,3 +136,4 @@ services:
 
 volumes:
   pgdata:
+  ollama_data:
