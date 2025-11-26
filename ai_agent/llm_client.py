@@ -4,6 +4,9 @@ Unified LLM Client for Credit Guardian AI agent.
 
 Supports multiple providers:
   - ollama: Local LLM via Ollama (FREE, no API key required)
+    OLLAMA_API_URL=http://localhost:11434 
+    MODEL_NAME=llama2
+    USE_LOCAL_OLLAMA=true
   - perplexity: Cloud LLM via Perplexity API (requires PERPLEXITY_API_KEY)
 
 Usage:

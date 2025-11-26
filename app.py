@@ -14,9 +14,11 @@ from ai_agent.agent_executor import AgentExecutor
 # from ai_agent.ensemble_client import EnsembleAIClient  # TODO: Implement this module
 from ai_agent.tracing import TRACES
 from database.models import (
-    Session, Creditor, Violation, CourtCase, UnfairClause,
+    Creditor, Violation, CourtCase, UnfairClause,
     User, Contract, Fee, ContractViolation, Complaint, Payment
 )
+from database.connection import get_db, check_connection
+from database.health import health_monitor
 from pathlib import Path
 from database.legal_models import LegalDocument, LegalArticle, LegalArticleTag
 from database.embedding_models import ArticleEmbedding
@@ -175,47 +177,45 @@ def ai_complaint_pdf(cid: int):
 
 @app.get("/api/creditor/{name}")
 def creditor_info(name: str):
-    s = Session()
-    c = s.query(Creditor).filter(Creditor.name.ilike(f"%{name}%")).first()
-    if not c:
-        s.close()
-        raise HTTPException(status_code=404, detail="Кредитор не намерен")
-    violations = s.query(Violation).filter_by(creditor_id=c.id).all()
-    clauses = s.query(UnfairClause).filter_by(creditor_id=c.id).all()
-    cases = s.query(CourtCase).filter_by(creditor_id=c.id).all()
-    data = {
-        'name': c.name,
-        'type': c.type,
-        'violations_count': c.violations_count,
-        'risk_score': c.risk_score,
-        'blacklisted': c.is_blacklisted,
-        'violations': [
-            {
-                'type': v.violation_type,
-                'date': v.decision_date,
-                'authority': v.authority,
-                'penalty': v.penalty_amount,
-                'severity': v.severity
-            } for v in violations
-        ],
-        'unfair_clauses': [
-            {
-                'type': cl.clause_type,
-                'legal_basis': cl.legal_basis,
-                'confirmed': cl.is_confirmed_illegal
-            } for cl in clauses
-        ],
-        'court_cases': [
-            {
-                'case_number': cs.case_number,
-                'court': cs.court_name,
-                'date': cs.decision_date,
-                'final': cs.is_final
-            } for cs in cases[:30]
-        ]
-    }
-    s.close()
-    return data
+    with get_db() as db:
+        c = db.query(Creditor).filter(Creditor.name.ilike(f"%{name}%")).first()
+        if not c:
+            raise HTTPException(status_code=404, detail="Кредитор не намерен")
+        violations = db.query(Violation).filter_by(creditor_id=c.id).all()
+        clauses = db.query(UnfairClause).filter_by(creditor_id=c.id).all()
+        cases = db.query(CourtCase).filter_by(creditor_id=c.id).all()
+        data = {
+            'name': c.name,
+            'type': c.type,
+            'violations_count': c.violations_count,
+            'risk_score': c.risk_score,
+            'blacklisted': c.is_blacklisted,
+            'violations': [
+                {
+                    'type': v.violation_type,
+                    'date': v.decision_date,
+                    'authority': v.authority,
+                    'penalty': v.penalty_amount,
+                    'severity': v.severity
+                } for v in violations
+            ],
+            'unfair_clauses': [
+                {
+                    'type': cl.clause_type,
+                    'legal_basis': cl.legal_basis,
+                    'confirmed': cl.is_confirmed_illegal
+                } for cl in clauses
+            ],
+            'court_cases': [
+                {
+                    'case_number': cs.case_number,
+                    'court': cs.court_name,
+                    'date': cs.decision_date,
+                    'final': cs.is_final
+                } for cs in cases[:30]
+            ]
+        }
+        return data
 
 
 @app.get("/api/creditors")
@@ -230,11 +230,10 @@ def list_creditors(
 ):
     """
     List creditors with pagination, search, and filtering
-    Optimized for large datasets
+    Optimized for large datasets with connection pooling
     """
-    s = Session()
-    try:
-        query = s.query(Creditor)
+    with get_db() as db:
+        query = db.query(Creditor)
         
         # Apply filters
         if search:
@@ -284,8 +283,6 @@ def list_creditors(
                 } for c in creditors
             ]
         }
-    finally:
-        s.close()
 
 
 @app.post("/api/creditors/sync")
@@ -371,17 +368,33 @@ async def analyze_contract_full(
     5. Generate complaint
     6. Return full results
     """
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext != ".pdf":
-        raise HTTPException(status_code=400, detail="Само PDF файлове се поддържат")
-    
-    # Save uploaded file temporarily
-    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-        content = await file.read()
-        tmp.write(content)
-        tmp_path = tmp.name
-    
+    tmp_path = None
     try:
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Файлът е задължителен")
+        
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in [".pdf", ".docx", ".txt"]:
+            raise HTTPException(status_code=400, detail="Поддържат се само PDF, DOCX и TXT файлове")
+        
+        # Check file size (max 50MB)
+        file.file.seek(0, 2)  # Seek to end
+        file_size = file.file.tell()
+        file.file.seek(0)  # Reset to beginning
+        
+        if file_size > 50 * 1024 * 1024:  # 50MB
+            raise HTTPException(status_code=400, detail="Файлът е твърде голям. Максималният размер е 50MB")
+        
+        if file_size == 0:
+            raise HTTPException(status_code=400, detail="Файлът е празен")
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+        
         # Optional S3 upload
         s3_url = None
         if s3_enabled:
@@ -401,10 +414,8 @@ async def analyze_contract_full(
         analysis = result["analysis"]
         complaint_text = result["complaint"]
         
-        # Database operations
-        session = Session()
-        
-        try:
+        # Database operations with proper session management
+        with get_db() as session:
             # 1. Create or get user
             user = None
             if email:
@@ -511,30 +522,31 @@ async def analyze_contract_full(
                 "s3_url": s3_url,
                 "message": "Договорът е анализиран успешно"
             }
-        
-        except Exception as db_error:
-            session.rollback()
-            raise HTTPException(status_code=500, detail=f"Database error: {str(db_error)}")
-        finally:
-            session.close()
     
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors, etc.)
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
+        logger.error(f"Contract analysis error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Грешка при анализа на договора: {str(e)}")
     finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+        # Clean up temporary file
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception as e:
+                logger.warning(f"Failed to remove temp file {tmp_path}: {e}")
 
 
 @app.get("/api/users/{user_id}/contracts")
 def get_user_contracts(user_id: int):
     """Get all contracts for a specific user"""
-    session = Session()
-    try:
-        user = session.query(User).filter_by(id=user_id).first()
+    with get_db() as db:
+        user = db.query(User).filter_by(id=user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        contracts = session.query(Contract).filter_by(user_id=user_id).all()
+        contracts = db.query(Contract).filter_by(user_id=user_id).all()
         
         return {
             "user": {
@@ -557,16 +569,13 @@ def get_user_contracts(user_id: int):
                 for c in contracts
             ]
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/contracts/{contract_id}")
 def get_contract_details(contract_id: int):
     """Get detailed information about a specific contract"""
-    session = Session()
-    try:
-        contract = session.query(Contract).filter_by(id=contract_id).first()
+    with get_db() as db:
+        contract = db.query(Contract).filter_by(id=contract_id).first()
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
         
@@ -605,16 +614,13 @@ def get_contract_details(contract_id: int):
                 for v in contract.violations
             ]
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/complaints/{complaint_id}")
 def get_complaint(complaint_id: int):
     """Get complaint details"""
-    session = Session()
-    try:
-        complaint = session.query(Complaint).filter_by(id=complaint_id).first()
+    with get_db() as db:
+        complaint = db.query(Complaint).filter_by(id=complaint_id).first()
         if not complaint:
             raise HTTPException(status_code=404, detail="Complaint not found")
         
@@ -627,16 +633,13 @@ def get_complaint(complaint_id: int):
             "contract_id": complaint.contract_id,
             "user_id": complaint.user_id
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/complaints/{complaint_id}/export")
 def export_complaint_pdf(complaint_id: int):
     """Export complaint as PDF"""
-    session = Session()
-    try:
-        complaint = session.query(Complaint).filter_by(id=complaint_id).first()
+    with get_db() as db:
+        complaint = db.query(Complaint).filter_by(id=complaint_id).first()
         if not complaint:
             raise HTTPException(status_code=404, detail="Complaint not found")
         
@@ -673,11 +676,6 @@ def export_complaint_pdf(complaint_id: int):
                 'Content-Disposition': f'attachment; filename="complaint_{complaint_id}.pdf"'
             }
         )
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
-    finally:
-        session.close()
 
 
 @app.get("/api/legal/search")
@@ -686,10 +684,9 @@ def search_legal_articles(q: str, limit: int = 10):
     Search Bulgarian legal articles by keyword
     Uses full-text search on article content
     """
-    session = Session()
-    try:
+    with get_db() as db:
         # Search in article content and document titles
-        articles = session.query(LegalArticle, LegalDocument)\
+        articles = db.query(LegalArticle, LegalDocument)\
             .join(LegalDocument, LegalArticle.document_id == LegalDocument.id)\
             .filter(
                 (LegalArticle.content.ilike(f"%{q}%")) |
@@ -712,23 +709,20 @@ def search_legal_articles(q: str, limit: int = 10):
                 for art, doc in articles
             ]
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/legal/article/{article_id}")
 def get_legal_article(article_id: int):
     """Get detailed information about a specific legal article"""
-    session = Session()
-    try:
-        article = session.query(LegalArticle).filter_by(id=article_id).first()
+    with get_db() as db:
+        article = db.query(LegalArticle).filter_by(id=article_id).first()
         if not article:
             raise HTTPException(status_code=404, detail="Article not found")
         
-        document = session.query(LegalDocument).filter_by(id=article.document_id).first()
+        document = db.query(LegalDocument).filter_by(id=article.document_id).first()
         
         # Get tags
-        tags = session.query(LegalArticleTag).filter_by(article_id=article_id).all()
+        tags = db.query(LegalArticleTag).filter_by(article_id=article_id).all()
         
         return {
             "article": {
@@ -753,8 +747,6 @@ def get_legal_article(article_id: int):
                 for tag in tags
             ]
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/legal/similar/{article_id}")
@@ -763,10 +755,9 @@ def find_similar_articles(article_id: int, top_k: int = 5):
     Find similar legal articles using semantic embeddings
     Requires embeddings to be generated
     """
-    session = Session()
-    try:
+    with get_db() as db:
         # Get the source article embedding
-        source_embedding = session.query(ArticleEmbedding).filter_by(article_id=article_id).first()
+        source_embedding = db.query(ArticleEmbedding).filter_by(article_id=article_id).first()
         if not source_embedding:
             raise HTTPException(status_code=404, detail="Article embeddings not found")
         
@@ -775,7 +766,7 @@ def find_similar_articles(article_id: int, top_k: int = 5):
         source_vector = np.frombuffer(source_embedding.embedding_vector, dtype=np.float32)
         
         # Calculate cosine similarity with all other articles
-        all_embeddings = session.query(ArticleEmbedding).filter(ArticleEmbedding.article_id != article_id).all()
+        all_embeddings = db.query(ArticleEmbedding).filter(ArticleEmbedding.article_id != article_id).all()
         
         similarities = []
         for emb in all_embeddings:
@@ -795,8 +786,8 @@ def find_similar_articles(article_id: int, top_k: int = 5):
         # Fetch article details
         results = []
         for art_id, sim_score in top_articles:
-            article = session.query(LegalArticle).filter_by(id=art_id).first()
-            document = session.query(LegalDocument).filter_by(id=article.document_id).first()
+            article = db.query(LegalArticle).filter_by(id=art_id).first()
+            document = db.query(LegalDocument).filter_by(id=article.document_id).first()
             
             results.append({
                 "article_id": article.id,
@@ -810,19 +801,13 @@ def find_similar_articles(article_id: int, top_k: int = 5):
             "source_article_id": article_id,
             "similar_articles": results
         }
-    
-    except ImportError:
-        raise HTTPException(status_code=501, detail="NumPy required for similarity search")
-    finally:
-        session.close()
 
 
 @app.get("/api/legal/documents")
 def list_legal_documents(limit: int = 50):
     """List all available legal documents"""
-    session = Session()
-    try:
-        documents = session.query(LegalDocument).limit(limit).all()
+    with get_db() as db:
+        documents = db.query(LegalDocument).limit(limit).all()
         
         return {
             "count": len(documents),
@@ -837,23 +822,20 @@ def list_legal_documents(limit: int = 50):
                 for doc in documents
             ]
         }
-    finally:
-        session.close()
 
 
 @app.get("/api/legal/stats")
 def legal_database_stats():
     """Get statistics about the legal database"""
-    session = Session()
-    try:
-        documents = session.query(LegalDocument).count()
-        articles = session.query(LegalArticle).count()
-        tags = session.query(LegalArticleTag).count()
-        embeddings = session.query(ArticleEmbedding).count()
+    with get_db() as db:
+        documents = db.query(LegalDocument).count()
+        articles = db.query(LegalArticle).count()
+        tags = db.query(LegalArticleTag).count()
+        embeddings = db.query(ArticleEmbedding).count()
         
         # Get document type breakdown
         from sqlalchemy import func
-        doc_types = session.query(
+        doc_types = db.query(
             LegalDocument.document_type,
             func.count(LegalDocument.id)
         ).group_by(LegalDocument.document_type).all()
@@ -865,26 +847,23 @@ def legal_database_stats():
             "total_embeddings": embeddings,
             "document_types": {doc_type: count for doc_type, count in doc_types}
         }
-    finally:
-        session.close()
 
 
 @app.get("/stats")
 def stats():
-    s = Session()
-    creditors = s.query(Creditor).count()
-    violations = s.query(Violation).count()
-    cases = s.query(CourtCase).count()
-    clauses = s.query(UnfairClause).count()
-    critical = s.query(Violation).filter_by(severity='critical').count()
-    s.close()
-    return {
-        'creditors': creditors,
-        'violations': violations,
-        'critical_violations': critical,
-        'court_cases': cases,
-        'unfair_clauses': clauses
-    }
+    with get_db() as db:
+        creditors = db.query(Creditor).count()
+        violations = db.query(Violation).count()
+        cases = db.query(CourtCase).count()
+        clauses = db.query(UnfairClause).count()
+        critical = db.query(Violation).filter_by(severity='critical').count()
+        return {
+            'creditors': creditors,
+            'violations': violations,
+            'critical_violations': critical,
+            'court_cases': cases,
+            'unfair_clauses': clauses
+        }
 
 
 @app.get("/")
@@ -925,14 +904,43 @@ def health_check():
 
 @app.get("/readiness")
 def readiness_check():
-    """Readiness check - verify DB connection"""
+    """Readiness check - verify DB connection and all dependencies"""
     try:
-        s = Session()
-        s.execute(text("SELECT 1"))
-        s.close()
-        return {"status": "ready", "database": "connected", "s3": s3_enabled}
+        db_healthy = check_connection()
+        if not db_healthy:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        # Check Ollama if configured
+        ollama_healthy = True
+        try:
+            import requests
+            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            response = requests.get(f"{ollama_url}/api/tags", timeout=2)
+            ollama_healthy = response.status_code == 200
+        except:
+            ollama_healthy = False
+        
+        return {
+            "status": "ready",
+            "database": "connected" if db_healthy else "disconnected",
+            "ollama": "connected" if ollama_healthy else "disconnected",
+            "s3": s3_enabled
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}")
+
+
+@app.get("/api/health/detailed")
+def detailed_health():
+    """Detailed health check with database statistics"""
+    try:
+        health_status = health_monitor.get_health_status()
+        return health_status
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

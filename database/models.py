@@ -12,11 +12,16 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Mapped,
 # Base declarative class
 Base = declarative_base()
 
-# Engine & Session factory (default SQLite, override via DATABASE_URL env var)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///credit_guardian.db")
-engine = create_engine(DATABASE_URL, echo=False, future=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-Session = SessionLocal  # compatibility alias for existing imports
+# Import connection manager (use get_db() for new code)
+try:
+    from .connection import get_db, get_session, engine, SessionLocal
+    Session = SessionLocal  # compatibility alias for existing imports
+except ImportError:
+    # Fallback for direct imports
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///credit_guardian.db")
+    engine = create_engine(DATABASE_URL, echo=False, future=True)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    Session = SessionLocal
 
 
 class TimestampMixin:

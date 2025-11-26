@@ -121,3 +121,8 @@ id_ed25519.pub
 
 # Test files with API keys
 test_perplexity.py
+
+# Git filter-repo temporary files (may contain secrets)
+replacements.txt
+*.replacements
+*_replacements.txt
