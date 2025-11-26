@@ -112,36 +112,46 @@ def get_db() -> Generator[Session, None, None]:
     """
     session = None
     retries = 0
+    session_closed = False  # Track if session was already closed to prevent double-close
     
-    while retries < MAX_RETRIES:
-        try:
-            session = SessionLocal()
-            yield session
-            session.commit()
-            break
-            
-        except (OperationalError, DisconnectionError) as e:
-            if session:
-                session.rollback()
-                session.close()
-            
-            retries += 1
-            if retries >= MAX_RETRIES:
-                logger.error(f"Database connection failed after {MAX_RETRIES} retries: {e}")
+    try:
+        while retries < MAX_RETRIES:
+            try:
+                session = SessionLocal()
+                yield session
+                session.commit()
+                break
+                
+            except (OperationalError, DisconnectionError) as e:
+                if session:
+                    session.rollback()
+                    session.close()
+                    session_closed = True
+                    session = None  # Clear reference to prevent double-close
+                
+                retries += 1
+                if retries >= MAX_RETRIES:
+                    logger.error(f"Database connection failed after {MAX_RETRIES} retries: {e}")
+                    raise
+                
+                logger.warning(f"Database connection error (attempt {retries}/{MAX_RETRIES}): {e}")
+                time.sleep(RETRY_DELAY * retries)  # Exponential backoff
+                
+            except Exception as e:
+                if session:
+                    session.rollback()
+                logger.error(f"Database error: {e}")
                 raise
-            
-            logger.warning(f"Database connection error (attempt {retries}/{MAX_RETRIES}): {e}")
-            time.sleep(RETRY_DELAY * retries)  # Exponential backoff
-            
-        except Exception as e:
-            if session:
-                session.rollback()
-            logger.error(f"Database error: {e}")
-            raise
-            
-        finally:
-            if session:
+                
+    finally:
+        # Only close if session exists and hasn't been closed already
+        # This prevents double-closing on retry paths where session was closed
+        # in the exception handler (line 126)
+        if session and not session_closed:
+            try:
                 session.close()
+            except Exception as e:
+                logger.warning(f"Error closing session in finally block: {e}")
 
 
 def check_connection() -> bool:

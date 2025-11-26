@@ -102,8 +102,9 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./server.log:/app/server.log
-      # Mount code directory for development (remove :ro for write access if needed)
-      - .:/app
+      # Note: Removed .:/app mount to preserve container isolation
+      # The application code is built into the image via Dockerfile
+      # For development, use docker-compose.override.yml with specific paths
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/readiness"]
       interval: 30s
