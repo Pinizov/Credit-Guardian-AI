@@ -1,0 +1,128 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+coverage.xml
+*.cover
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+credit_guardian.db
+creditguardian.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Evaluation results
+evaluation/results.json
+evaluation/report.txt
+
+# Alembic
+alembic/versions/*.pyc
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Model files (large)
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+
+# Data files (optional - uncomment if you don't want to commit data)
+# *.csv
+# *.json
+# *.xml
+
+# API keys and secrets (NEVER commit these)
+secrets.py
+config_local.py
+
+# SSH keys (NEVER commit these)
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Test files with API keys
+test_perplexity.py
+
+# Git filter-repo temporary files (may contain secrets)
+replacements.txt
+*.replacements
+*_replacements.txt

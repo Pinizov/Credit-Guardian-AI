@@ -1,0 +1,8 @@
+# CPU-only Docker Compose (for WSL, Mac, or systems without GPU)
+# Note: version field removed (obsolete in newer Docker Compose)
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
+
+services:
+  ollama:
+    # Remove any GPU-related configuration
+    deploy: null

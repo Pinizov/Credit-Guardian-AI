@@ -103,8 +103,8 @@ python demo_features.py
 
 ### 4. Run Full Evaluation
 ```powershell
-# Set API key
-$env:OPENAI_API_KEY = "your-key-here"
+# Set API key (Perplexity for cloud, or Ollama for local)
+$env:PERPLEXITY_API_KEY = "pplx-your-key-here"
 
 # Run evaluation
 python run_evaluation.py --verbose

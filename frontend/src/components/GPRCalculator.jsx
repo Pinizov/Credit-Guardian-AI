@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { calculateGPR } from '../api/client';
+import { calculateGPR, verifyGPR } from '../api/client';
 
 export default function GPRCalculator() {
+  const [showHelp, setShowHelp] = useState(true);
   const [formData, setFormData] = useState({
     amount: '',
     total_repayment: '',

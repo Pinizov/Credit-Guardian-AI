@@ -73,7 +73,8 @@ Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 Write-Host "Next steps:" -ForegroundColor White
-Write-Host "1. Set your OpenAI API key: " -NoNewline; Write-Host "`$env:OPENAI_API_KEY='your-key'" -ForegroundColor Yellow
+Write-Host "1. Set Perplexity API key: " -NoNewline; Write-Host "`$env:PERPLEXITY_API_KEY='pplx-your-key'" -ForegroundColor Yellow
+Write-Host "   OR run Ollama locally: " -NoNewline; Write-Host "ollama serve" -ForegroundColor Yellow
 Write-Host "2. Edit evaluation dataset: " -NoNewline; Write-Host "evaluation/test_dataset.json" -ForegroundColor Yellow
 Write-Host "3. Run evaluation: " -NoNewline; Write-Host "python run_evaluation.py --verbose" -ForegroundColor Yellow
 Write-Host "4. View traces in console or set OTLP endpoint" -ForegroundColor White

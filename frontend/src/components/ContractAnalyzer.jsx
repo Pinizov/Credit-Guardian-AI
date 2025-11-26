@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { analyzeContract } from '../api/client';
+import { analyzeContractFull, analyzeContractSimple, exportComplaintPdf } from '../api/client';
 
 export default function ContractAnalyzer() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
+  const [complaintId, setComplaintId] = useState(null);
+  const [useFull, setUseFull] = useState(true);
+  const [userFields, setUserFields] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    egn: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -13,6 +22,11 @@ export default function ContractAnalyzer() {
       setFile(selectedFile);
       setError(null);
     }
+  };
+
+  const handleFieldChange = (e) => {
+    const { name, value } = e.target;
+    setUserFields(f => ({ ...f, [name]: value }));
   };
 
   const analyze = async () => {
@@ -26,8 +40,17 @@ export default function ContractAnalyzer() {
     setResult(null);
 
     try {
-      const { data } = await analyzeContract(file);
-      setResult(data);
+      let data;
+      if (useFull) {
+        const response = await analyzeContractFull(file, userFields);
+        data = response.data;
+        setComplaintId(data.complaint_id || null);
+        setResult(data.analysis || data); // store full analysis portion
+      } else {
+        const response = await analyzeContractSimple(file);
+        data = response.data;
+        setResult(data);
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Грешка при анализ на договора');
     } finally {
@@ -47,7 +70,24 @@ export default function ContractAnalyzer() {
 
   return (
     <div className="card">
-      <h2>Анализ на договор</h2>
+      <h2>📄 Анализ на кредитен договор</h2>
+      
+      <div className="welcome-message" style={{backgroundColor: '#e3f2fd', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+        <h3 style={{margin: '0 0 10px 0', color: '#1976d2'}}>👋 Добре дошли в Credit Guardian!</h3>
+        <p style={{margin: '5px 0', lineHeight: '1.6'}}>
+          Качете вашия кредитен договор и нашият AI агент ще анализира:
+        </p>
+        <ul style={{marginLeft: '20px', lineHeight: '1.8'}}>
+          <li>✅ Правилност на ГПР (Годишен процент на разходите)</li>
+          <li>⚠️ Неравноправни клаузи и забранени условия</li>
+          <li>💰 Незаконни такси и скрити разходи</li>
+          <li>🔍 История на нарушения от кредитора</li>
+          <li>📋 Съответствие със Закона за потребителския кредит</li>
+        </ul>
+        <p style={{margin: '10px 0 0 0', fontSize: '14px', color: '#666'}}>
+          💡 <strong>Съвет:</strong> Подгответе договора в PDF, DOCX или TXT формат за най-добри резултати.
+        </p>
+      </div>
       
       <div className="upload-zone" onClick={() => document.getElementById('fileInput').click()}>
         <input
@@ -56,8 +96,40 @@ export default function ContractAnalyzer() {
           accept=".pdf,.docx,.txt"
           onChange={handleFileChange}
         />
-        <p>{file ? `Избран: ${file.name}` : 'Кликнете за избор на файл (PDF, DOCX, TXT)'}</p>
+        <p>{file ? `✅ Избран: ${file.name}` : '📎 Кликнете за избор на файл (PDF, DOCX, TXT)'}</p>
+        {!file && <p style={{fontSize: '14px', color: '#888', marginTop: '10px'}}>или плъзнете файл тук</p>}
       </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input type="checkbox" checked={useFull} onChange={() => setUseFull(v => !v)} /> Пълен AI анализ (запис в база + жалба)
+        </label>
+      </div>
+
+      {useFull && (
+        <div className="form-grid" style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '12px' }}>
+          <div>
+            <label>Име</label>
+            <input name="name" value={userFields.name} onChange={handleFieldChange} placeholder="Вашето име" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input name="email" value={userFields.email} onChange={handleFieldChange} placeholder="email@пример.bg" />
+          </div>
+          <div>
+            <label>Телефон</label>
+            <input name="phone" value={userFields.phone} onChange={handleFieldChange} placeholder="08xx..." />
+          </div>
+            <div>
+            <label>Адрес</label>
+            <input name="address" value={userFields.address} onChange={handleFieldChange} placeholder="гр. София..." />
+          </div>
+          <div>
+            <label>ЕГН</label>
+            <input name="egn" value={userFields.egn} onChange={handleFieldChange} placeholder="**********" />
+          </div>
+        </div>
+      )}
 
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -72,13 +144,22 @@ export default function ContractAnalyzer() {
 
       {result && (
         <div style={{ marginTop: '30px' }}>
-          <div className={`alert alert-${getRiskColor(result.risk_level)}`}>
+          <div className={`alert alert-${getRiskColor(result.risk_level || result.risk_level_estimate || 'medium')}`}>
             <h3>Анализ завършен</h3>
-            <p><strong>Кредитор:</strong> {result.creditor}</p>
-            <p><strong>Размер:</strong> {result.amount.toFixed(2)} лв</p>
-            <p><strong>ГПР (декларирано):</strong> {result.declared_gpr.toFixed(2)}%</p>
-            <p><strong>Ниво на риск:</strong> <span className={`risk-badge risk-${result.risk_level}`}>{result.risk_level.toUpperCase()}</span></p>
+            <p><strong>Кредитор:</strong> {result.creditor || result.creditor_name || 'Неизвестен'}</p>
+            {result.amount && <p><strong>Размер:</strong> {Number(result.amount).toFixed(2)} лв</p>}
+            {(result.declared_gpr || result.stated_apr) && <p><strong>ГПР (декларирано):</strong> {(result.declared_gpr || result.stated_apr).toFixed(2)}%</p>}
+            {(result.calculated_real_apr || result.calculated_apr) && <p><strong>ГПР (изчислено):</strong> {(result.calculated_real_apr || result.calculated_apr).toFixed(2)}%</p>}
+            {(result.risk_level || result.risk_level_estimate) && (
+              <p><strong>Ниво на риск:</strong> <span className={`risk-badge risk-${(result.risk_level || result.risk_level_estimate)}`}>{(result.risk_level || result.risk_level_estimate).toUpperCase()}</span></p>
+            )}
           </div>
+
+          {complaintId && (
+            <div style={{ marginTop: '15px' }}>
+              <button className="btn" onClick={() => exportComplaintPdf(complaintId)}>⬇️ Изтегли жалбата (PDF)</button>
+            </div>
+          )}
 
           {result.gpr_verification && !result.gpr_verification.is_correct && (
             <div className="alert alert-danger">

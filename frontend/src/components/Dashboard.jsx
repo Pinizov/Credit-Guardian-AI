@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { getStats } from '../api/client';
+import { getRootStats, getLegalStats } from '../api/client';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [legalStats, setLegalStats] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -11,8 +12,10 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const { data } = await getStats();
-      setStats(data);
+      const root = await getRootStats();
+      setStats(root);
+      const { data: legal } = await getLegalStats();
+      setLegalStats(legal);
     } catch (error) {
       console.error('Stats error:', error);
     } finally {
@@ -48,6 +51,29 @@ export default function Dashboard() {
           <div className="label">Неравноправни клаузи</div>
         </div>
       </div>
+      {legalStats && (
+        <div style={{ marginTop: '30px' }}>
+          <h3>Правна база</h3>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="number">{legalStats.total_documents}</div>
+              <div className="label">Правни документи</div>
+            </div>
+            <div className="stat-card">
+              <div className="number">{legalStats.total_articles}</div>
+              <div className="label">Членове</div>
+            </div>
+            <div className="stat-card">
+              <div className="number">{legalStats.total_tags}</div>
+              <div className="label">Тагове</div>
+            </div>
+            <div className="stat-card">
+              <div className="number">{legalStats.total_embeddings}</div>
+              <div className="label">Семантични embedding-и</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

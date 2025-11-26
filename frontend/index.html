@@ -1,12 +1,780 @@
 <!DOCTYPE html>
 <html lang="bg">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Credit Guardian - Защита на потребителите</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Guardian AI - Защита на Потребителите</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                    <h1 class="text-xl font-bold">Credit Guardian AI</h1>
+                </div>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#dashboard" class="hover:text-blue-200 transition">Табло</a>
+                    <a href="#gpr-calculator" class="hover:text-blue-200 transition">ГПР Калкулатор</a>
+                    <a href="#contract-analyzer" class="hover:text-blue-200 transition">Анализ на Договори</a>
+                    <a href="#creditors" class="hover:text-blue-200 transition">Кредитори</a>
+                    <a href="#ai-analysis" class="hover:text-blue-200 transition">AI Анализ</a>
+                </div>
+                <button class="md:hidden" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <a href="#dashboard" class="block py-2 hover:text-blue-200">Табло</a>
+                <a href="#gpr-calculator" class="block py-2 hover:text-blue-200">ГПР Калкулатор</a>
+                <a href="#contract-analyzer" class="block py-2 hover:text-blue-200">Анализ на Договори</a>
+                <a href="#creditors" class="block py-2 hover:text-blue-200">Кредитори</a>
+                <a href="#ai-analysis" class="block py-2 hover:text-blue-200">AI Анализ</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-4xl md:text-6xl font-bold mb-6 slide-in">
+                Защитете Своите Права като Потребител
+            </h2>
+            <p class="text-xl md:text-2xl mb-8 opacity-90">
+                AI-платформа за анализ на кредитни договори, изчисляване на ГПР и откриване на несправедливи клаузи
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <button onclick="scrollToSection('gpr-calculator')" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <i class="fas fa-calculator mr-2"></i>ГПР Калкулатор
+                </button>
+                <button onclick="scrollToSection('contract-analyzer')" class="bg-transparent border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
+                    <i class="fas fa-file-contract mr-2"></i>Анализ на Договор
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">Статистики и Преглед</h3>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100">Анализирани Договори</p>
+                            <p class="text-3xl font-bold" id="stat-contracts">-</p>
+                        </div>
+                        <i class="fas fa-file-invoice text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100">Открити Нарушения</p>
+                            <p class="text-3xl font-bold" id="stat-violations">-</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-lg card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-red-100">Регистрирани Кредитори</p>
+                            <p class="text-3xl font-bold" id="stat-creditors">-</p>
+                        </div>
+                        <i class="fas fa-building text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-purple-100">Генерирани Жалби</p>
+                            <p class="text-3xl font-bold" id="stat-complaints">-</p>
+                        </div>
+                        <i class="fas fa-gavel text-4xl opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800">Нарушения по Тип</h4>
+                    <canvas id="violationsChart"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800">ГПР Превишения</h4>
+                    <canvas id="gprChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GPR Calculator Section -->
+    <section id="gpr-calculator" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">ГПР Калкулатор</h3>
+            
+            <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                <form id="gprForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Сума на кредита (лв)</label>
+                            <input type="number" id="loanAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="10000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Месечни вноски (лв)</label>
+                            <input type="number" id="monthlyPayment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Срок (месеци)</label>
+                            <input type="number" id="loanTerm" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="24">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Такси (лв)</label>
+                            <input type="number" id="fees" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="200">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Обявена ГПР (%)</label>
+                        <input type="number" id="declaredAPR" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="12.5">
+                    </div>
+                    
+                    <button type="button" onclick="calculateGPR()" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-calculator mr-2"></i>Изчисли ГПР
+                    </button>
+                </form>
+                
+                <!-- Results -->
+                <div id="gprResults" class="hidden mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 class="text-xl font-semibold mb-4 text-green-800">Резултати от Изчисленията</h4>
+                    <div id="gprResultsContent" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contract Analyzer Section -->
+    <section id="contract-analyzer" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">Анализ на Кредитни Договори</h3>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                    <h4 class="text-xl font-semibold mb-4">Качете Вашия Договор</h4>
+                    <p class="text-gray-600 mb-6">Поддържаме PDF, DOCX и TXT формати</p>
+                    <input type="file" id="contractFile" accept=".pdf,.docx,.txt" class="hidden" aria-label="Upload contract file">
+                    <button onclick="document.getElementById('contractFile').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-upload mr-2"></i>Избери Файл
+                    </button>
+                </div>
+                
+                <!-- Analysis Results -->
+                <div id="analysisResults" class="hidden mt-8 bg-gray-50 p-6 rounded-lg">
+                    <h4 class="text-xl font-semibold mb-4">Резултати от Анализа</h4>
+                    <div id="analysisContent" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Creditors Section -->
+    <section id="creditors" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">База Данни за Кредитори</h3>
+            
+            <div class="max-w-6xl mx-auto">
+                <!-- Search -->
+                <div class="mb-8">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="text" id="creditorSearch" placeholder="Търси кредитор по име или БУЛСТАТ" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="searchCreditors()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-search mr-2"></i>Търсене
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Creditors Table -->
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кредитор</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">БУЛСТАТ</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Нарушения</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Риск</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Лиценз</th>
+                                </tr>
+                            </thead>
+                            <tbody id="creditorsTable" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Зареждане...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Analysis Section -->
+    <section id="ai-analysis" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">AI Анализ и Генериране на Жалби</h3>
+            
+            <div class="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- AI Analysis -->
+                <div class="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-lg border border-purple-200">
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800">
+                        <i class="fas fa-robot text-purple-600 mr-2"></i>AI Анализ с Ollama
+                    </h4>
+                    <p class="text-gray-600 mb-4">Нашата AI система използва Ollama за анализ на кредитни договори спрямо българското законодателство.</p>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Автоматично откриване на несправедливи клаузи</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Анализ съобразно ЗПК, ЗЗП и ЗКИ</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Генериране на обосновани правни аргументи</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Проверка за съответствие с европейските директиви</li>
+                    </ul>
+                </div>
+                
+                <!-- Legal Framework -->
+                <div class="bg-gradient-to-br from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800">
+                        <i class="fas fa-balance-scale text-green-600 mr-2"></i>Правна Рамка
+                    </h4>
+                    <p class="text-gray-600 mb-4">Платформата е разработена в съответствие с българското и европейското законодателство за защита на потребителите.</p>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li><i class="fas fa-gavel text-green-500 mr-2"></i>Закон за потребителския кредит (ЗПК)</li>
+                        <li><i class="fas fa-gavel text-green-500 mr-2"></i>Закон за защита на потребителите (ЗЗП)</li>
+                        <li><i class="fas fa-gavel text-green-500 mr-2"></i>Закон за кредитните институции (ЗКИ)</li>
+                        <li><i class="fas fa-gavel text-green-500 mr-2"></i>Европейски директиви за потребителски кредити</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Generate Complaint Button -->
+            <div class="text-center mt-8">
+                <button onclick="generateComplaint()" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition font-semibold text-lg">
+                    <i class="fas fa-file-alt mr-2"></i>Генерирай Жалба
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Credit Guardian AI</h5>
+                    <p class="text-gray-400">Защитаваме правата на българските потребители чрез модерни AI технологии.</p>
+                </div>
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Правна Информация</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Условия за Ползване</a></li>
+                        <li><a href="#" class="hover:text-white transition">Политика за Поверителност</a></li>
+                        <li><a href="#" class="hover:text-white transition">Правни Документи</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-xl font-semibold mb-4">Контакти</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fas fa-envelope mr-2"></i>info@creditguardian.bg</li>
+                        <li><i class="fas fa-phone mr-2"></i>+359 2 123 4567</li>
+                        <li><i class="fas fa-map-marker-alt mr-2"></i>София, България</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Credit Guardian AI. Всички права запазени.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // API Base URL - Auto-detect based on environment
+        // Live Server (Go Live): port 5500 -> API on 8080 (Docker) - use absolute URL
+        // Docker frontend: port 3000 -> use relative URLs (nginx will proxy)
+        // Local dev: port 8000 -> API on 8000 (local)
+        const getApiBase = () => {
+            const hostname = window.location.hostname;
+            const port = window.location.port;
+            
+            // Docker frontend - port 3000 (served by nginx)
+            // Use relative URLs so nginx can proxy /api/ requests
+            if (port === '3000') {
+                return '';  // Use relative URLs - nginx will proxy
+            }
+            
+            // Live Server (VS Code Go Live) - typically port 5500
+            // Use absolute URL since we're not going through nginx
+            if (port === '5500' || port === '5501' || port === '5502') {
+                return 'http://localhost:8080';  // Docker API
+            }
+            
+            // Local development - port 8000 or no port
+            if (port === '8000' || !port) {
+                return 'http://localhost:8000';  // Local API
+            }
+            
+            // Default: try to detect from current URL
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return 'http://localhost:8080';  // Default to Docker
+            }
+            
+            // Fallback
+            return 'http://localhost:8080';
+        };
+        const API_BASE = getApiBase();
+        console.log('API Base URL:', API_BASE, '(detected from port:', window.location.port || 'default', ')');
+        
+        // Helper function for fetch with timeout (compatible with older browsers)
+        function fetchWithTimeout(url, options = {}, timeout = 10000) {
+            return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    reject(new Error('Request timeout'));
+                }, timeout);
+                
+                fetch(url, options)
+                    .then(response => {
+                        clearTimeout(timer);
+                        resolve(response);
+                    })
+                    .catch(error => {
+                        clearTimeout(timer);
+                        reject(error);
+                    });
+            });
+        }
+        
+        // Test API connectivity on page load
+        async function testApiConnection() {
+            try {
+                const response = await fetchWithTimeout(`${API_BASE}/health`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                }, 5000);
+                if (response.ok) {
+                    console.log('✓ API connection successful');
+                    return true;
+                } else {
+                    console.warn('⚠ API returned non-OK status:', response.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('✗ API connection failed:', error);
+                console.error('Please ensure Docker services are running: docker-compose up -d');
+                return false;
+            }
+        }
+        
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Scroll to section
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Load dashboard statistics
+        async function loadDashboardStats() {
+            try {
+                const response = await fetchWithTimeout(`${API_BASE}/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                }, 5000); // 5 second timeout
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('stat-contracts').textContent = data.contracts || 0;
+                document.getElementById('stat-violations').textContent = data.violations || 0;
+                document.getElementById('stat-creditors').textContent = data.creditors || 0;
+                document.getElementById('stat-complaints').textContent = data.complaints || 0;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                // Set defaults on error
+                document.getElementById('stat-contracts').textContent = '-';
+                document.getElementById('stat-violations').textContent = '-';
+                document.getElementById('stat-creditors').textContent = '-';
+                document.getElementById('stat-complaints').textContent = '-';
+            }
+        }
+
+        // GPR Calculator - using API
+        async function calculateGPR() {
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+            const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
+            const loanTerm = parseInt(document.getElementById('loanTerm').value);
+            const fees = parseFloat(document.getElementById('fees').value) || 0;
+            const declaredAPR = parseFloat(document.getElementById('declaredAPR').value) || 0;
+
+            if (!loanAmount || !monthlyPayment || !loanTerm) {
+                alert('Моля, попълнете всички задължителни полета');
+                return;
+            }
+
+            try {
+                const totalRepayment = monthlyPayment * loanTerm;
+                const response = await fetch(`${API_BASE}/api/gpr/calculate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: loanAmount,
+                        total_repayment: totalRepayment,
+                        term_months: loanTerm,
+                        fees: fees > 0 ? [{ type: 'other', amount: fees }] : []
+                    })
+                });
+
+                const result = await response.json();
+                const calculatedAPR = result.gpr || 0;
+
+                // Display results
+                const resultsDiv = document.getElementById('gprResults');
+                const resultsContent = document.getElementById('gprResultsContent');
+                
+                let violationAlert = '';
+                if (declaredAPR && calculatedAPR > declaredAPR + 0.5) {
+                    violationAlert = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"><i class="fas fa-exclamation-triangle mr-2"></i><strong>ВНИМАНИЕ!</strong> Изчислената ГПР превишава обявената!</div>';
+                } else if (declaredAPR && Math.abs(calculatedAPR - declaredAPR) <= 0.5) {
+                    violationAlert = '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded"><i class="fas fa-check mr-2"></i>ГПР съответства на обявената.</div>';
+                }
+
+                resultsContent.innerHTML = `
+                    ${violationAlert}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded border">
+                            <h5 class="font-semibold text-gray-800">Изчислена ГПР</h5>
+                            <p class="text-2xl font-bold text-green-600">${calculatedAPR.toFixed(2)}%</p>
+                        </div>
+                        <div class="bg-white p-4 rounded border">
+                            <h5 class="font-semibold text-gray-800">Общо Дължима Сума</h5>
+                            <p class="text-xl font-semibold text-gray-800">${totalRepayment.toFixed(2)} лв.</p>
+                        </div>
+                    </div>
+                `;
+                
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                console.error('GPR calculation error:', error);
+                alert('Грешка при изчисляване на ГПР. Моля, опитайте отново.');
+            }
+        }
+
+        // Contract Analysis - using API
+        document.getElementById('contractFile').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file size (50MB max)
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                alert('Файлът е твърде голям. Максималният размер е 50MB.');
+                e.target.value = ''; // Clear file input
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+            const allowedExtensions = ['.pdf', '.docx', '.txt'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedExtensions.includes(fileExtension)) {
+                alert('Поддържат се само PDF, DOCX и TXT файлове.');
+                e.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', 'Потребител');
+            formData.append('email', '');
+            formData.append('phone', '');
+            formData.append('address', '');
+            formData.append('egn', '');
+
+            const resultsDiv = document.getElementById('analysisResults');
+            const contentDiv = document.getElementById('analysisContent');
+            
+            contentDiv.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i><p class="mt-4">Анализиране на договора...</p><p class="text-sm text-gray-500 mt-2">Моля изчакайте, това може да отнеме няколко минути</p></div>';
+            resultsDiv.classList.remove('hidden');
+
+            try {
+                console.log('Uploading file to:', `${API_BASE}/api/analyze-contract`);
+                const response = await fetchWithTimeout(`${API_BASE}/api/analyze-contract`, {
+                    method: 'POST',
+                    body: formData
+                }, 300000); // 5 minute timeout for long-running AI requests
+
+                if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+                    }
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                // Check if result has error status
+                if (result.status === 'error') {
+                    throw new Error(result.message || 'Грешка при анализа');
+                }
+                
+                const analysis = result.analysis || {};
+
+                contentDiv.innerHTML = `
+                    <div class="bg-white p-4 rounded border">
+                        <h5 class="font-semibold mb-2">Анализиран Договор: ${file.name}</h5>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span>Кредитор:</span>
+                                <span class="font-semibold">${analysis.creditor || 'Неизвестен'}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Сума:</span>
+                                <span class="font-semibold">${(analysis.principal || 0).toFixed(2)} лв.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Обявена ГПР:</span>
+                                <span class="font-semibold text-red-600">${(analysis.stated_apr || 0).toFixed(2)}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Изчислена ГПР:</span>
+                                <span class="font-semibold text-red-600">${(analysis.calculated_real_apr || 0).toFixed(2)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${result.violations && result.violations.length > 0 ? `
+                    <div class="bg-red-50 border border-red-200 p-4 rounded">
+                        <h6 class="font-semibold text-red-800 mb-2">Открити Нарушения:</h6>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            ${result.violations.map(v => `<li><i class="fas fa-exclamation-triangle mr-2"></i>${v.description || v.type}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                `;
+            } catch (error) {
+                console.error('Analysis error:', error);
+                let errorMessage = 'Грешка при анализа. Моля, опитайте отново.';
+                
+                if (error.name === 'AbortError' || error.message.includes('timeout')) {
+                    errorMessage = 'Времето за изчакване изтече. Анализът може да отнеме няколко минути. Моля, опитайте отново.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = `Не може да се свърже с API сървъра (${API_BASE}). Моля, проверете дали сървърът е стартиран и достъпен.`;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                contentDiv.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 p-4 rounded text-red-700">
+                        <h5 class="font-semibold mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Грешка</h5>
+                        <p>${errorMessage}</p>
+                        <p class="text-sm mt-2 text-red-600">Моля, проверете файла и опитайте отново.</p>
+                        <p class="text-xs mt-1 text-gray-500">API URL: ${API_BASE}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Load Creditors - using API
+        async function loadCreditors(searchTerm = '') {
+            const tbody = document.getElementById('creditorsTable');
+            try {
+                const url = `${API_BASE}/api/creditors?limit=50${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`;
+                console.log('Fetching creditors from:', url);
+                
+                const response = await fetchWithTimeout(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                }, 10000); // 10 second timeout
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Creditors data received:', data);
+                
+                if (data.creditors && data.creditors.length > 0) {
+                    tbody.innerHTML = data.creditors.map(creditor => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${creditor.name || 'Неизвестен'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">${creditor.bulstat || '-'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${creditor.violations_count || 0}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    (creditor.risk_score || 0) > 5 ? 'bg-red-100 text-red-800' :
+                                    (creditor.risk_score || 0) > 2 ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                }">${(creditor.risk_score || 0).toFixed(1)}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Активен</span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Няма намерени кредитори</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading creditors:', error);
+                let errorMessage = 'Грешка при зареждане';
+                
+                if (error.name === 'AbortError' || error.message.includes('timeout')) {
+                    errorMessage = 'Времето за изчакване изтече. Моля, опитайте отново.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = `Не може да се свърже с API сървъра (${API_BASE}). Моля, проверете дали сървърът е стартиран.`;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">${errorMessage}</td></tr>`;
+            }
+        }
+
+        function searchCreditors() {
+            const searchTerm = document.getElementById('creditorSearch').value;
+            loadCreditors(searchTerm);
+        }
+
+        // Generate Complaint
+        function generateComplaint() {
+            alert('Генериране на жалба...\n\nТова ще създаде PDF документ с формална жалба до КЗП (Комисията за защита на потребителите) въз основа на анализирания договор.');
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Violations Chart
+            const violationsCtx = document.getElementById('violationsChart').getContext('2d');
+            new Chart(violationsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ГПР Нарушения', 'Несправедливи Клаузи', 'Скрити Такси', 'Липса на Информация'],
+                    datasets: [{
+                        data: [45, 28, 15, 12],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // GPR Chart
+            const gprCtx = document.getElementById('gprChart').getContext('2d');
+            new Chart(gprCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Яну', 'Фев', 'Мар', 'Апр', 'Май', 'Юни'],
+                    datasets: [{
+                        label: 'ГПР Превишения',
+                        data: [12, 19, 8, 15, 22, 18],
+                        backgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardStats();
+            loadCreditors();
+            initCharts();
+            
+            // Add animation delays
+            setTimeout(() => {
+                document.querySelectorAll('.card-hover').forEach((card, index) => {
+                    setTimeout(() => {
+                        card.classList.add('slide-in');
+                    }, index * 100);
+                });
+            }, 500);
+        });
+
+        // Handle search on Enter
+        document.getElementById('creditorSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchCreditors();
+            }
+        });
+    </script>
   </body>
 </html>

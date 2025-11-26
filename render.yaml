@@ -1,0 +1,41 @@
+# Render Blueprint for Credit Guardian
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API
+  - type: web
+    name: credit-guardian-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: credit-guardian-db
+          property: connectionString
+      - key: PERPLEXITY_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: AI_PROVIDER
+        value: perplexity  # Options: perplexity, ollama
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /health
+
+  # Frontend (optional - can also use Vercel)
+  - type: web
+    name: credit-guardian-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        value: https://credit-guardian-api.onrender.com
+
+databases:
+  - name: credit-guardian-db
+    plan: free
+    databaseName: credit_guardian
+    user: cg_user
+
