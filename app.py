@@ -17,11 +17,15 @@ from database.models import (
     Session, Creditor, Violation, CourtCase, UnfairClause,
     User, Contract, Fee, ContractViolation, Complaint, Payment
 )
+from pathlib import Path
 from database.legal_models import LegalDocument, LegalArticle, LegalArticleTag
 from database.embedding_models import ArticleEmbedding
 from sqlalchemy import text
 from utils.s3_storage import init_s3, upload_contract_to_s3
+import logging
 # from api_v2_ensemble import router as ensemble_router  # TODO: Implement this module
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Credit Guardian API", version="0.1")
 
@@ -215,26 +219,136 @@ def creditor_info(name: str):
 
 
 @app.get("/api/creditors")
-def list_creditors(limit: int = 50):
-    """List creditors basic info for dynamic dropdowns/lists"""
+def list_creditors(
+    limit: int = 50,
+    offset: int = 0,
+    search: str = None,
+    creditor_type: str = None,
+    min_risk_score: float = None,
+    blacklisted_only: bool = False,
+    sort_by: str = "risk_score"  # risk_score, name, violations_count
+):
+    """
+    List creditors with pagination, search, and filtering
+    Optimized for large datasets
+    """
     s = Session()
     try:
-        creditors = s.query(Creditor).order_by(Creditor.risk_score.desc()).limit(limit).all()
+        query = s.query(Creditor)
+        
+        # Apply filters
+        if search:
+            query = query.filter(
+                (Creditor.name.ilike(f"%{search}%")) |
+                (Creditor.bulstat.ilike(f"%{search}%"))
+            )
+        
+        if creditor_type:
+            query = query.filter(Creditor.type == creditor_type)
+        
+        if min_risk_score is not None:
+            query = query.filter(Creditor.risk_score >= min_risk_score)
+        
+        if blacklisted_only:
+            query = query.filter(Creditor.is_blacklisted == True)
+        
+        # Get total count before pagination
+        total_count = query.count()
+        
+        # Apply sorting
+        if sort_by == "name":
+            query = query.order_by(Creditor.name.asc())
+        elif sort_by == "violations_count":
+            query = query.order_by(Creditor.violations_count.desc(), Creditor.risk_score.desc())
+        else:  # default: risk_score
+            query = query.order_by(Creditor.risk_score.desc(), Creditor.name.asc())
+        
+        # Apply pagination
+        creditors = query.offset(offset).limit(limit).all()
+        
         return {
+            "total": total_count,
             "count": len(creditors),
+            "offset": offset,
+            "limit": limit,
             "creditors": [
                 {
                     "id": c.id,
                     "name": c.name,
                     "type": c.type,
+                    "bulstat": c.bulstat,
                     "risk_score": c.risk_score,
                     "violations_count": c.violations_count,
                     "blacklisted": c.is_blacklisted,
+                    "license_number": c.license_number,
                 } for c in creditors
             ]
         }
     finally:
         s.close()
+
+
+@app.post("/api/creditors/sync")
+def sync_creditors_from_apis():
+    """
+    Sync creditors from Bulgarian financial registers and APIs
+    Real-time data synchronization endpoint
+    Uses enhanced APIs for real-time data
+    """
+    try:
+        from scrapers.enhanced_bulgarian_apis import EnhancedBulgarianAPIs
+        from import_creditors_from_apis import import_creditors_to_database, enrich_with_violations
+        
+        logger.info("Starting creditor sync from enhanced APIs...")
+        
+        # Use enhanced API client
+        api = EnhancedBulgarianAPIs()
+        api_stats = api.sync_all_creditors()
+        
+        # Also import from local files
+        from scrapers.bulgarian_financial_apis import BulgarianFinancialAPIs
+        local_api = BulgarianFinancialAPIs()
+        
+        legal_data_dir = Path("legal data")
+        file_paths = {}
+        
+        # Banks list
+        banks_file = legal_data_dir / "bs_ci_reg_bankslist_bg.doc"
+        if banks_file.exists():
+            file_paths['bnb_banks'] = banks_file
+        
+        # Non-bank financial institutions
+        fsc_file = legal_data_dir / "bs_fi_regintro_register_bg.xls"
+        if fsc_file.exists():
+            file_paths['fsc_nonbank'] = fsc_file
+        
+        all_creditors = []
+        
+        if file_paths:
+            local_creditors = local_api.parse_local_registers(file_paths)
+            all_creditors.extend(local_creditors)
+        
+        # Standardize and deduplicate
+        standardized = local_api.standardize_creditor_data(all_creditors)
+        
+        # Enrich with violations
+        enriched = enrich_with_violations(standardized)
+        
+        # Import to database
+        import_stats = import_creditors_to_database(enriched)
+        
+        return {
+            "status": "success",
+            "message": "Creditor sync completed",
+            "stats": {
+                "api_sync": api_stats,
+                "local_import": import_stats
+            },
+            "synced_at": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error syncing creditors: {e}")
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
 
@@ -776,6 +890,31 @@ def stats():
 @app.get("/")
 def root():
     return JSONResponse({"service": "Credit Guardian API", "endpoints": ["/api/gpr/calculate", "/api/gpr/verify", "/api/contract/analyze", "/api/creditor/{name}", "/stats"]})
+
+
+@app.post("/api/newsletter/subscribe")
+def subscribe_newsletter(email: str = Form(...), name: Optional[str] = Form(None)):
+    """
+    Subscribe to newsletter
+    """
+    try:
+        # TODO: Implement actual newsletter subscription storage
+        # For now, just log the subscription
+        logger.info(f"Newsletter subscription: {email} ({name or 'No name'})")
+        
+        # In production, you would:
+        # 1. Store in database
+        # 2. Send confirmation email
+        # 3. Add to mailing list (e.g., Mailchimp, SendGrid)
+        
+        return {
+            "status": "success",
+            "message": "Успешно се абонирахте! Проверете имейла си за потвърждение.",
+            "email": email
+        }
+    except Exception as e:
+        logger.error(f"Newsletter subscription error: {e}")
+        raise HTTPException(status_code=500, detail=f"Subscription failed: {str(e)}")
 
 
 @app.get("/health")

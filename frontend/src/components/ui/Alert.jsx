@@ -34,14 +34,20 @@ const variants = {
  */
 export function Alert({
   variant = 'info',
+  type,
   title,
+  message,
   children,
   dismissible = false,
   onDismiss,
+  onClose,
   className,
   ...props
 }) {
-  const config = variants[variant];
+  // Support both 'type' and 'variant' props
+  const alertVariant = type || variant;
+  const config = variants[alertVariant];
+  const handleClose = onClose || onDismiss;
   
   return (
     <div
@@ -60,11 +66,11 @@ export function Alert({
           {title && (
             <h4 className="font-semibold mb-1">{title}</h4>
           )}
-          <div className="text-sm">{children}</div>
+          <div className="text-sm">{message || children}</div>
         </div>
-        {dismissible && onDismiss && (
+        {(dismissible || handleClose) && handleClose && (
           <button
-            onClick={onDismiss}
+            onClick={handleClose}
             className="flex-shrink-0 text-current opacity-60 hover:opacity-100 transition-opacity"
             aria-label="Затвори"
           >

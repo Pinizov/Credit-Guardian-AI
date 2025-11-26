@@ -20,7 +20,22 @@ export const getLegalStats = () => api.get('/legal/stats');
 
 // Creditor endpoints
 export const getCreditor = (name) => api.get(`/creditor/${encodeURIComponent(name)}`);
-export const getCreditors = () => api.get('/creditors');
+export const getCreditors = (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.offset) queryParams.append('offset', params.offset);
+  if (params.search) queryParams.append('search', params.search);
+  if (params.creditor_type) queryParams.append('creditor_type', params.creditor_type);
+  if (params.min_risk_score !== undefined) queryParams.append('min_risk_score', params.min_risk_score);
+  if (params.blacklisted_only) queryParams.append('blacklisted_only', 'true');
+  if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+  
+  const queryString = queryParams.toString();
+  return api.get(`/creditors${queryString ? '?' + queryString : ''}`);
+};
+
+// Sync creditors from APIs
+export const syncCreditors = () => api.post('/creditors/sync');
 
 // GPR calculation endpoints
 export const calculateGPR = (data) => api.post('/gpr/calculate', data);
@@ -59,5 +74,8 @@ export const exportComplaintPdf = async (complaintId) => {
   a.remove();
   window.URL.revokeObjectURL(url);
 };
+
+// Newsletter subscription
+export const subscribeNewsletter = (data) => api.post('/newsletter/subscribe', data);
 
 export default api;

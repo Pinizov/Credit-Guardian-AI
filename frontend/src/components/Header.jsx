@@ -19,6 +19,7 @@ export default function Header({ activeTab, onTabChange }) {
   }, []);
 
   const navItems = [
+    { id: 'home', label: '🏠 Начало', icon: '🏠' },
     { id: 'dashboard', label: '📊 Статистика', icon: '📊' },
     { id: 'creditor', label: '🔍 Проверка', icon: '🔍' },
     { id: 'creditors', label: '🏢 Кредитори', icon: '🏢' },
@@ -46,7 +47,9 @@ export default function Header({ activeTab, onTabChange }) {
             <div className="flex items-center gap-3">
               <span className="text-3xl">🛡️</span>
               <div>
-                <h1 className="text-2xl font-bold">Credit Guardian</h1>
+                <h1 className="text-2xl font-bold cursor-pointer" onClick={() => onTabChange('home')}>
+                  Credit Guardian
+                </h1>
                 <p className="text-white/80 text-sm hidden sm:block">
                   Вашият дигитален защитник при кредитиране
                 </p>

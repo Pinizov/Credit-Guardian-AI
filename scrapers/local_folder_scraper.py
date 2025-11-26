@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from base_scraper import BaseScraper
+from scrapers.base_scraper import BaseScraper
 import PyPDF2
 import pandas as pd
 
