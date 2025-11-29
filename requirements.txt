@@ -1,9 +1,9 @@
 # Web Scraping
-requests==2.31.0
+requests==2.32.4
 beautifulsoup4==4.12.2
 lxml==4.9.3
 selenium==4.15.2
-scrapy==2.11.0
+scrapy==2.13.4
 
 # Database
 sqlalchemy==2.0.23
@@ -41,7 +41,7 @@ redis==5.0.1
 python-dotenv==1.0.0
 pyyaml==6.0.1
 click==8.1.7
-tqdm==4.66.1
+tqdm==4.66.3
 schedule==1.2.0
 
 # Testing
